@@ -184,11 +184,22 @@ const StudentProfile = ({ student, trainerId, onClose }: StudentProfileProps) =>
   };
 
   const copyStudentLink = () => {
-    const link = `${window.location.origin}/student/${student.unique_link_token}`;
+    const baseUrl = window.location.origin;
+    const workoutLink = `${baseUrl}/student/${student.unique_link_token}`;
+    const dietLink = `${baseUrl}/student/${student.unique_link_token}/diet`;
+    
+    const fullText = `Links do aluno ${student.name}:
+
+🏋️ Treino: ${workoutLink}
+🍎 Dieta: ${dietLink}
+
+Token: ${student.unique_link_token}`;
+    
+    navigator.clipboard.writeText(fullText);
     navigator.clipboard.writeText(link);
     toast({
       title: "Link copiado!",
-      description: "O link do aluno foi copiado para a área de transferência.",
+      description: "Os links de treino e dieta foram copiados para a área de transferência.",
     });
   };
 
@@ -459,17 +470,6 @@ const StudentProfile = ({ student, trainerId, onClose }: StudentProfileProps) =>
                     {(!student.goals || student.goals.length === 0) && (
                       <p className="p-2 bg-muted rounded text-muted-foreground">Nenhum objetivo definido</p>
                     )}
-                    <div className="flex gap-2 mt-3">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setEditingWorkout(plan)}
-                        className="flex-1"
-                      >
-                        <Settings className="h-4 w-4 mr-2" />
-                        Editar Treino
-                      </Button>
-                    </div>
                   </div>
                 )}
               </div>

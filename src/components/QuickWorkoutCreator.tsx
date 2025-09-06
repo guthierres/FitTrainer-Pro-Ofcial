@@ -357,6 +357,8 @@ const QuickWorkoutCreator = ({ studentId, studentName, trainerId, onClose, onSuc
         .single();
 
       if (planError) throw planError;
+      
+      console.log("Workout plan created:", workoutPlan);
 
       // Create sessions and exercises
       for (const session of sessions) {
@@ -374,6 +376,8 @@ const QuickWorkoutCreator = ({ studentId, studentName, trainerId, onClose, onSuc
           .single();
 
         if (sessionError) throw sessionError;
+        
+        console.log("Workout session created:", workoutSession);
 
         // Insert exercises for this session
         const exerciseInserts = session.exercises.map(ex => ({
@@ -386,11 +390,15 @@ const QuickWorkoutCreator = ({ studentId, studentName, trainerId, onClose, onSuc
           order_index: ex.order_index,
         }));
 
+        console.log("Inserting exercises:", exerciseInserts);
+
         const { error: exerciseError } = await supabase
           .from("workout_exercises")
           .insert(exerciseInserts);
 
         if (exerciseError) throw exerciseError;
+        
+        console.log("Exercises inserted successfully");
       }
 
       toast({

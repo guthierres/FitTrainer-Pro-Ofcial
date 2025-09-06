@@ -260,6 +260,8 @@ const QuickDietCreator = ({ studentId, studentName, trainerId, onClose, onSucces
         .single();
 
       if (planError) throw planError;
+      
+      console.log("Diet plan created:", dietPlan);
 
       // Create meals and foods
       for (const meal of meals) {
@@ -277,6 +279,8 @@ const QuickDietCreator = ({ studentId, studentName, trainerId, onClose, onSucces
           .single();
 
         if (mealError) throw mealError;
+        
+        console.log("Meal created:", mealData);
 
         // Insert foods for this meal
         const foodInserts = meal.foods
@@ -294,11 +298,15 @@ const QuickDietCreator = ({ studentId, studentName, trainerId, onClose, onSucces
           }));
 
         if (foodInserts.length > 0) {
+          console.log("Inserting foods for meal:", mealData.id, foodInserts);
+          
           const { error: foodError } = await supabase
             .from("meal_foods")
             .insert(foodInserts);
 
           if (foodError) throw foodError;
+          
+          console.log("Foods inserted successfully");
         }
       }
 

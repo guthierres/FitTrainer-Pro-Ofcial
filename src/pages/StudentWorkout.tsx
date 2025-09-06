@@ -93,6 +93,19 @@ const StudentWorkout = () => {
   const loadStudentData = async () => {
     try {
       setIsLoading(true);
+      
+      console.log("Loading student data for token:", token);
+      
+      // Set student context for RLS policies
+      if (token) {
+        const { error: contextError } = await supabase.rpc('set_student_context', {
+          student_token: token
+        });
+        
+        if (contextError) {
+          console.warn("Could not set student context:", contextError);
+        }
+      }
 
       // Busca o aluno pelo token
       const { data: studentData, error: studentError } = await supabase
@@ -102,7 +115,10 @@ const StudentWorkout = () => {
         .eq("active", true)
         .single();
 
+      console.log("Student query result:", { studentData, studentError });
+
       if (studentError || !studentData) {
+        console.error("Student not found:", studentError);
         toast({
           title: "Erro",
           description: "Link inválido ou expirado.",
@@ -111,6 +127,7 @@ const StudentWorkout = () => {
         return;
       }
 
+      console.log("Student found:", studentData);
       setStudent(studentData);
 
       // Busca o plano de treino ativo com as sessões e exercícios
@@ -149,8 +166,9 @@ const StudentWorkout = () => {
         )
         .eq("student_id", studentData.id)
         .eq("active", true)
-        .order("order_index", { foreignTable: "workout_sessions.workout_exercises" })
-        .single();
+        .maybeSingle();
+
+      console.log("Workout query result:", { workoutData, workoutError });
 
       if (workoutError || !workoutData) {
         console.log("No active workout found for student:", studentData.id, workoutError);
@@ -161,6 +179,8 @@ const StudentWorkout = () => {
         setWorkoutPlan(null);
         return;
       }
+
+      console.log("Workout plan found:", workoutData);
 
       // Verifica os exercícios concluídos para hoje
       const today = new Date().toISOString().split("T")[0];

@@ -87,9 +87,12 @@ const CreateStudent = ({ trainerId, onClose, onSuccess }: CreateStudentProps) =>
 
       // Generate a more robust unique token
       const generateUniqueToken = () => {
+        // Create a more unique and longer token
         const timestamp = Date.now().toString(36);
-        const randomStr = Math.random().toString(36).substring(2);
-        return `${timestamp}-${randomStr}`;
+        const randomStr1 = Math.random().toString(36).substring(2);
+        const randomStr2 = Math.random().toString(36).substring(2);
+        const randomStr3 = Math.random().toString(36).substring(2);
+        return `${timestamp}-${randomStr1}-${randomStr2}-${randomStr3}`;
       };
 
       const studentData = {

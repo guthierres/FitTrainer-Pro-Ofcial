@@ -17,7 +17,8 @@ import {
   Trash2,
   Edit,
   Users,
-  Copy
+  Copy,
+  Apple
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -143,11 +144,21 @@ const StudentList = ({ trainerId }: StudentListProps) => {
   };
 
   const copyStudentLink = (student: Student) => {
-    const link = `${window.location.origin}/student/${student.unique_link_token}`;
-    navigator.clipboard.writeText(link);
+    const baseUrl = window.location.origin;
+    const workoutLink = `${baseUrl}/student/${student.unique_link_token}`;
+    const dietLink = `${baseUrl}/student/${student.unique_link_token}/diet`;
+    
+    const fullText = `Links do aluno ${student.name}:
+
+🏋️ Treino: ${workoutLink}
+🍎 Dieta: ${dietLink}
+
+Token: ${student.unique_link_token}`;
+    
+     navigator.clipboard.writeText(fullText);
     toast({
       title: "Link copiado!",
-      description: `O link do aluno ${student.name} foi copiado para a área de transferência.`,
+      description: `Os links de treino e dieta do aluno ${student.name} foram copiados.`,
     });
   };
 
@@ -382,10 +393,31 @@ const StudentList = ({ trainerId }: StudentListProps) => {
                     variant="ghost"
                     size="sm"
                     onClick={() => deleteStudent(student.id)}
-                    className="w-full text-destructive hover:text-destructive hover:bg-destructive/10 text-xs h-8 touch-target"
+                    className="touch-target text-xs h-9 bg-success/5 hover:bg-success/10 border-success/20"
                   >
                     <Trash2 className="h-3 w-3 mr-1" />
-                    Excluir Aluno
+                    Links
+                  </Button>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => window.open(`/student/${student.unique_link_token}`, '_blank')}
+                    className="touch-target text-xs h-9 bg-blue-50 hover:bg-blue-100 border-blue-200 text-blue-700"
+                  >
+                    <ExternalLink className="h-3 w-3 mr-1" />
+                    Ver Treino
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => window.open(`/student/${student.unique_link_token}/diet`, '_blank')}
+                    className="touch-target text-xs h-9 bg-green-50 hover:bg-green-100 border-green-200 text-green-700"
+                  >
+                    <Apple className="h-3 w-3 mr-1" />
+                    Ver Dieta
                   </Button>
                 </div>
               </CardContent>

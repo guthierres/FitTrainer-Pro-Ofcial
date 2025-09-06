@@ -81,6 +81,19 @@ const StudentDiet = () => {
   const loadStudentData = async () => {
     try {
       setIsLoading(true);
+      
+      console.log("Loading student diet data for token:", token);
+      
+      // Set student context for RLS policies
+      if (token) {
+        const { error: contextError } = await supabase.rpc('set_student_context', {
+          student_token: token
+        });
+        
+        if (contextError) {
+          console.warn("Could not set student context:", contextError);
+        }
+      }
 
       // Get student by token
       const { data: studentData, error: studentError } = await supabase
@@ -90,7 +103,10 @@ const StudentDiet = () => {
         .eq("active", true)
         .single();
 
+      console.log("Student query result:", { studentData, studentError });
+
       if (studentError || !studentData) {
+        console.error("Student not found:", studentError);
         toast({
           title: "Erro",
           description: "Link inválido ou expirado.",
@@ -99,6 +115,7 @@ const StudentDiet = () => {
         return;
       }
 
+      console.log("Student found:", studentData);
       setStudent(studentData);
 
       // Get active diet plan with meals and foods
@@ -133,8 +150,9 @@ const StudentDiet = () => {
         `)
         .eq("student_id", studentData.id)
         .eq("active", true)
-        .order("order_index", { foreignTable: "meals" })
         .maybeSingle();
+
+      console.log("Diet query result:", { dietData, dietError });
 
       if (dietError || !dietData) {
         console.log("No active diet found for student:", studentData.id, dietError);

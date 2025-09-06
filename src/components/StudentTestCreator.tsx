@@ -58,9 +58,11 @@ const StudentTestCreator = ({ trainerId, onClose, onSuccess }: StudentTestCreato
 
       // Generate a robust unique token
       const generateToken = () => {
+        // Create a more unique and longer token for testing
         const timestamp = Date.now().toString(36);
-        const random = Math.random().toString(36).substring(2);
-        return `test-${timestamp}-${random}`;
+        const randomStr1 = Math.random().toString(36).substring(2);
+        const randomStr2 = Math.random().toString(36).substring(2);
+        return `test-${timestamp}-${randomStr1}-${randomStr2}`;
       };
 
       const testData = {
