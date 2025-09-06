@@ -1,0 +1,8 @@
+# Static assets
+/assets/*    /assets/:splat    200
+
+# API routes (if needed)
+/api/*    /.netlify/functions/:splat    200
+
+# SPA fallback
+/*    /index.html   200

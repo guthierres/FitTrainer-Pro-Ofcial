@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover" />
+    <title>FitTrainer-Pro - Sistema de Gestão para Personal Trainers</title>
+    <meta name="description" content="Sistema completo de gestão para personal trainers e alunos" />
+    <meta name="author" content="FitTrainer-Pro" />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#0ea5e9" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png" />
+
+    <meta property="og:title" content="FitTrainer-Pro - Sistema de Gestão para Personal Trainers" />
+    <meta property="og:description" content="Sistema completo de gestão para personal trainers e alunos" />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="/icon-512.png" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="FitTrainer-Pro" />
+    <meta name="twitter:description" content="Sistema completo de gestão para personal trainers e alunos" />
+    <meta name="twitter:image" content="/icon-512.png" />
+  </head>
+
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    <script>
+      // Enhanced Service Worker management with cache handling
+      if ('serviceWorker' in navigator) {
+        const APP_VERSION = '2.0';
+        
+        window.addEventListener('load', function() {
+          // Verificar se há nova versão da app
+          const storedVersion = localStorage.getItem('app-version');
+          if (storedVersion && storedVersion !== APP_VERSION) {
+            console.log('New app version detected, clearing caches...');
+            // Limpar caches quando há nova versão
+            if ('caches' in window) {
+              caches.keys().then((cacheNames) => {
+                return Promise.all(
+                  cacheNames.map((cacheName) => caches.delete(cacheName))
+                );
+              });
+            }
+          }
+          localStorage.setItem('app-version', APP_VERSION);
+          
+          navigator.serviceWorker.register('/sw.js', {
+            updateViaCache: 'none' // Sempre verificar por atualizações
+          })
+            .then(function(registration) {
+              console.log('SW registered successfully:', registration);
+              
+              // Verificar por atualizações
+              registration.addEventListener('updatefound', () => {
+                const newWorker = registration.installing;
+                if (newWorker) {
+                  newWorker.addEventListener('statechange', () => {
+                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                      console.log('New service worker installed, prompting user...');
+                      if (confirm('Nova versão disponível! Recarregar para atualizar?')) {
+                        newWorker.postMessage({ type: 'SKIP_WAITING' });
+                        window.location.reload();
+                      }
+                    }
+                  });
+                }
+              });
+              
+              // Controlar atualizações do SW
+              let refreshing = false;
+              navigator.serviceWorker.addEventListener('controllerchange', () => {
+                if (!refreshing) {
+                  window.location.reload();
+                  refreshing = true;
+                }
+              });
+            })
+            .catch(function(registrationError) {
+              console.log('SW registration failed:', registrationError);
+            });
+        });
+        
+        // Detectar erros de carregamento de chunks e limpar cache
+        window.addEventListener('unhandledrejection', (event) => {
+          const error = event.reason;
+          if (error && error.message && 
+              (error.message.includes('ChunkLoadError') || 
+               error.message.includes('Loading chunk') ||
+               error.message.includes('Failed to fetch'))) {
+            console.log('Chunk load error detected, clearing cache and reloading...');
+            event.preventDefault();
+            
+            // Limpar service worker e cache
+            navigator.serviceWorker.getRegistrations().then((registrations) => {
+              registrations.forEach((registration) => {
+                registration.unregister();
+              });
+              
+              if ('caches' in window) {
+                caches.keys().then((cacheNames) => {
+                  return Promise.all(
+                    cacheNames.map((cacheName) => caches.delete(cacheName))
+                  );
+                }).then(() => {
+                  window.location.reload();
+                });
+              } else {
+                window.location.reload();
+              }
+            });
+          }
+        });
+        
+        // Detectar erros de recursos não encontrados
+        window.addEventListener('error', (event) => {
+          if (event.filename && 
+              (event.filename.includes('.js') || event.filename.includes('.css')) &&
+              event.message.includes('404')) {
+            console.log('Asset 404 error detected, clearing cache...');
+            
+            if ('caches' in window) {
+              caches.keys().then((cacheNames) => {
+                return Promise.all(
+                  cacheNames.map((cacheName) => caches.delete(cacheName))
+                );
+              }).then(() => {
+                window.location.reload();
+              });
+            }
+          }
+        });
+      }
+    </script>
+  </body>
+</html>
