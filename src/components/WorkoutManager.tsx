@@ -96,11 +96,13 @@ const WorkoutManager = ({ trainerId }: { trainerId: string }) => {
 
   const loadWorkouts = async () => {
     try {
+      console.log("Loading workouts for trainer:", trainerId);
+      
       const { data, error } = await supabase
         .from("workout_plans")
         .select(`
           *,
-          students!inner(name),
+          students(name),
           workout_sessions(
             *,
             workout_exercises(
@@ -113,6 +115,7 @@ const WorkoutManager = ({ trainerId }: { trainerId: string }) => {
         .order("created_at", { ascending: false });
 
       if (!error && data) {
+        console.log("Workouts loaded:", data.length);
         // Transform the data to include rest_minutes for display
         const transformedData = data.map(workout => ({
           ...workout,
@@ -125,9 +128,13 @@ const WorkoutManager = ({ trainerId }: { trainerId: string }) => {
           }))
         }));
         setWorkouts(transformedData);
+      } else {
+        console.error("Error loading workouts:", error);
+        setWorkouts([]);
       }
     } catch (error) {
       console.error("Error loading workouts:", error);
+      setWorkouts([]);
     }
   };
 

@@ -255,6 +255,19 @@ const QuickWorkoutCreator = ({ studentId, studentName, trainerId, onClose, onSuc
   };
 
   const addExerciseToSession = (sessionIndex: number, exercise: Exercise) => {
+    // Check if exercise is already in the session
+    const session = sessions[sessionIndex];
+    const exerciseExists = session.exercises.some(ex => ex.exercise_id === exercise.id);
+    
+    if (exerciseExists) {
+      toast({
+        title: "Exercício já adicionado",
+        description: `${exercise.name} já está neste treino.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     const newExercise: WorkoutExercise = {
       exercise_id: exercise.id,
       exercise_name: exercise.name,
@@ -275,6 +288,8 @@ const QuickWorkoutCreator = ({ studentId, studentName, trainerId, onClose, onSuc
       title: "Exercício adicionado!",
       description: `${exercise.name} foi adicionado ao treino.`,
     });
+    
+    // Don't close dialog to allow adding multiple exercises
   };
 
   const removeExerciseFromSession = (sessionIndex: number, exerciseIndex: number) => {

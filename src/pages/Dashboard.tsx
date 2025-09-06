@@ -94,8 +94,10 @@ const Dashboard = () => {
 
   const loadStats = async (trainerId: string) => {
     try {
-      // Get total students
-      const { data: students, error: studentsError } = await supabase
+      console.log("Loading stats for trainer:", trainerId);
+      
+      // Get total active students
+      const { data: studentsData, error: studentsError } = await supabase
         .from("students")
         .select("id")
         .eq("personal_trainer_id", trainerId)
@@ -103,11 +105,14 @@ const Dashboard = () => {
 
       if (studentsError) {
         console.error("Students error:", studentsError);
-        throw studentsError;
+        // Don't throw, just log and continue
       }
 
+      const students = studentsData || [];
+      console.log("Students found:", students.length);
+
       // Get active workout plans
-      const { data: workouts, error: workoutsError } = await supabase
+      const { data: workoutsData, error: workoutsError } = await supabase
         .from("workout_plans")
         .select("id")
         .eq("personal_trainer_id", trainerId)
@@ -115,11 +120,14 @@ const Dashboard = () => {
 
       if (workoutsError) {
         console.error("Workouts error:", workoutsError);
-        throw workoutsError;
+        // Don't throw, just log and continue
       }
 
+      const workouts = workoutsData || [];
+      console.log("Active workouts found:", workouts.length);
+
       // Get active diet plans
-      const { data: diets, error: dietsError } = await supabase
+      const { data: dietsData, error: dietsError } = await supabase
         .from("diet_plans")
         .select("id")
         .eq("personal_trainer_id", trainerId)
@@ -127,28 +135,33 @@ const Dashboard = () => {
 
       if (dietsError) {
         console.error("Diets error:", dietsError);
-        throw dietsError;
+        // Don't throw, just log and continue
       }
+
+      const diets = dietsData || [];
+      console.log("Active diets found:", diets.length);
 
       // Get today's completed exercises
       const today = new Date().toISOString().split('T')[0];
-      const { data: completions, error: completionsError } = await supabase
+      const { data: completionsData, error: completionsError } = await supabase
         .from("exercise_completions")
         .select("id, student_id")
-        .in("student_id", students?.map(s => s.id) || [])
+        .in("student_id", students.map(s => s.id))
         .gte("completed_at", `${today}T00:00:00`)
         .lt("completed_at", `${today}T23:59:59`);
 
       if (completionsError) {
         console.error("Completions error:", completionsError);
-        // Don't throw for completions error, just log it
       }
 
+      const completions = completionsData || [];
+      console.log("Today's completions found:", completions.length);
+
       const newStats = {
-        totalStudents: students?.length || 0,
-        activeWorkouts: workouts?.length || 0,
-        activeDiets: diets?.length || 0,
-        completedExercisesToday: completions?.length || 0
+        totalStudents: students.length,
+        activeWorkouts: workouts.length,
+        activeDiets: diets.length,
+        completedExercisesToday: completions.length
       };
 
       console.log("Stats loaded successfully:", newStats);
@@ -156,7 +169,13 @@ const Dashboard = () => {
 
     } catch (error) {
       console.error("Error loading stats:", error);
-      throw error;
+      // Set default stats instead of throwing
+      setStats({
+        totalStudents: 0,
+        activeWorkouts: 0,
+        activeDiets: 0,
+        completedExercisesToday: 0
+      });
     }
   };
 

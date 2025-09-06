@@ -84,11 +84,13 @@ const DietManager = ({ trainerId }: { trainerId: string }) => {
 
   const loadDiets = async () => {
     try {
+      console.log("Loading diets for trainer:", trainerId);
+      
       const { data, error } = await supabase
         .from("diet_plans")
         .select(`
           *,
-          students!inner(name),
+          students(name),
           meals(
             *,
             meal_foods(*)
@@ -98,10 +100,15 @@ const DietManager = ({ trainerId }: { trainerId: string }) => {
         .order("created_at", { ascending: false });
 
       if (!error && data) {
+        console.log("Diets loaded:", data.length);
         setDiets(data);
+      } else {
+        console.error("Error loading diets:", error);
+        setDiets([]);
       }
     } catch (error) {
       console.error("Error loading diets:", error);
+      setDiets([]);
     }
   };
 

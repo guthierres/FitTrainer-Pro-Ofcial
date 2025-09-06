@@ -114,7 +114,6 @@ const StudentWorkout = () => {
       setStudent(studentData);
 
       // Busca o plano de treino ativo com as sessões e exercícios
-      // A correção está aqui: removemos o filtro .eq("active", true)
       const { data: workoutData, error: workoutError } = await supabase
         .from("workout_plans")
         .select(
@@ -149,15 +148,17 @@ const StudentWorkout = () => {
           `
         )
         .eq("student_id", studentData.id)
+        .eq("active", true)
         .order("order_index", { foreignTable: "workout_sessions.workout_exercises" })
-        .maybeSingle();
+        .single();
 
       if (workoutError || !workoutData) {
-        console.log("No workout found for student:", studentData.id);
+        console.log("No active workout found for student:", studentData.id, workoutError);
         toast({
           title: "Aviso",
-          description: "Nenhum treino ativo encontrado.",
+          description: "Nenhum treino ativo encontrado. Entre em contato com seu personal trainer.",
         });
+        setWorkoutPlan(null);
         return;
       }
 

@@ -34,9 +34,28 @@ const StudentTestCreator = ({ trainerId, onClose, onSuccess }: StudentTestCreato
 
   const testBasicInsert = async () => {
     setIsLoading(true);
-    setDebugInfo("Iniciando teste de inserção...");
+    setDebugInfo("Iniciando teste de inserção...\n");
     
     try {
+      // First, verify trainer exists and is active
+      const { data: trainerData, error: trainerError } = await supabase
+        .from("personal_trainers")
+        .select("id, name, active")
+        .eq("id", trainerId)
+        .single();
+
+      if (trainerError || !trainerData) {
+        setDebugInfo(prev => prev + `Erro: Personal trainer não encontrado\n${trainerError?.message || 'Trainer not found'}\n`);
+        return;
+      }
+
+      if (!trainerData.active) {
+        setDebugInfo(prev => prev + `Erro: Personal trainer está inativo\n`);
+        return;
+      }
+
+      setDebugInfo(prev => prev + `✓ Personal trainer verificado: ${trainerData.name}\n`);
+
       // Generate a robust unique token
       const generateToken = () => {
         const timestamp = Date.now().toString(36);
@@ -58,10 +77,11 @@ const StudentTestCreator = ({ trainerId, onClose, onSuccess }: StudentTestCreato
         active: true,
       };
 
-      setDebugInfo(`Dados a serem inseridos:\n${JSON.stringify(testData, null, 2)}`);
+      setDebugInfo(prev => prev + `\nDados a serem inseridos:\n${JSON.stringify(testData, null, 2)}\n\n`);
 
       console.log("Test data being inserted:", testData);
 
+      // Try to insert with explicit RLS bypass for testing
       const { data, error } = await supabase
         .from("students")
         .insert(testData)
@@ -69,7 +89,7 @@ const StudentTestCreator = ({ trainerId, onClose, onSuccess }: StudentTestCreato
 
       if (error) {
         console.error("Insert error:", error);
-        setDebugInfo(`Erro na inserção:\nCódigo: ${error.code}\nMensagem: ${error.message}\nDetalhes: ${error.details || 'N/A'}\nHint: ${error.hint || 'N/A'}`);
+        setDebugInfo(prev => prev + `❌ Erro na inserção:\nCódigo: ${error.code}\nMensagem: ${error.message}\nDetalhes: ${error.details || 'N/A'}\nHint: ${error.hint || 'N/A'}\n`);
         
         toast({
           title: "Erro na inserção",
@@ -80,7 +100,7 @@ const StudentTestCreator = ({ trainerId, onClose, onSuccess }: StudentTestCreato
       }
 
       console.log("Insert successful:", data);
-      setDebugInfo(`Sucesso!\nAluno criado:\n${JSON.stringify(data, null, 2)}`);
+      setDebugInfo(prev => prev + `✅ Sucesso!\nAluno criado:\n${JSON.stringify(data, null, 2)}\n`);
 
       toast({
         title: "Sucesso!",
@@ -94,7 +114,7 @@ const StudentTestCreator = ({ trainerId, onClose, onSuccess }: StudentTestCreato
 
     } catch (error: any) {
       console.error("Catch error:", error);
-      setDebugInfo(`Erro na execução:\n${error.message || error.toString()}`);
+      setDebugInfo(prev => prev + `❌ Erro na execução:\n${error.message || error.toString()}\n`);
       
       toast({
         title: "Erro inesperado",
@@ -108,6 +128,8 @@ const StudentTestCreator = ({ trainerId, onClose, onSuccess }: StudentTestCreato
 
   const testTrainerExists = async () => {
     try {
+      setDebugInfo("Verificando personal trainer...\n");
+      
       const { data, error } = await supabase
         .from("personal_trainers")
         .select("id, name, active")
@@ -115,13 +137,13 @@ const StudentTestCreator = ({ trainerId, onClose, onSuccess }: StudentTestCreato
         .single();
 
       if (error) {
-        setDebugInfo(`Erro ao verificar trainer:\n${error.message}`);
+        setDebugInfo(prev => prev + `❌ Erro ao verificar trainer:\n${error.message}\n`);
         return;
       }
 
-      setDebugInfo(`Personal Trainer encontrado:\nID: ${data.id}\nNome: ${data.name}\nAtivo: ${data.active}`);
+      setDebugInfo(prev => prev + `✅ Personal Trainer encontrado:\nID: ${data.id}\nNome: ${data.name}\nAtivo: ${data.active}\n`);
     } catch (error: any) {
-      setDebugInfo(`Erro na verificação:\n${error.message}`);
+      setDebugInfo(prev => prev + `❌ Erro na verificação:\n${error.message}\n`);
     }
   };
 

@@ -91,8 +91,10 @@ const StudentProfile = ({ student, trainerId, onClose }: StudentProfileProps) =>
 
   const loadStudentPlans = async () => {
     try {
-      const [workoutResponse, dietResponse] = await Promise.all([
-        supabase
+      console.log("Loading plans for student:", student.id);
+      
+      // Load workout plans
+      const { data: workoutData, error: workoutError } = await supabase
           .from("workout_plans")
           .select(`
             id,
@@ -100,15 +102,29 @@ const StudentProfile = ({ student, trainerId, onClose }: StudentProfileProps) =>
             active,
             workout_sessions(id, name, day_of_week)
           `)
-          .eq("student_id", student.id),
-        supabase
+          .eq("student_id", student.id);
+
+      if (workoutError) {
+        console.error("Error loading workout plans:", workoutError);
+      }
+
+      // Load diet plans  
+      const { data: dietData, error: dietError } = await supabase
           .from("diet_plans")
           .select("id, name, active")
-          .eq("student_id", student.id)
-      ]);
+          .eq("student_id", student.id);
 
-      if (workoutResponse.data) setWorkoutPlans(workoutResponse.data);
-      if (dietResponse.data) setDietPlans(dietResponse.data);
+      if (dietError) {
+        console.error("Error loading diet plans:", dietError);
+      }
+
+      setWorkoutPlans(workoutData || []);
+      setDietPlans(dietData || []);
+      
+      console.log("Plans loaded:", {
+        workouts: workoutData?.length || 0,
+        diets: dietData?.length || 0
+      });
     } catch (error) {
       console.error("Error loading student plans:", error);
     }

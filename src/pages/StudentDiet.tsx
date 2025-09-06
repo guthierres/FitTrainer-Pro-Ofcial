@@ -134,13 +134,15 @@ const StudentDiet = () => {
         .eq("student_id", studentData.id)
         .eq("active", true)
         .order("order_index", { foreignTable: "meals" })
-        .single();
+        .maybeSingle();
 
       if (dietError || !dietData) {
+        console.log("No active diet found for student:", studentData.id, dietError);
         toast({
           title: "Aviso",
-          description: "Nenhuma dieta ativa encontrada.",
+          description: "Nenhuma dieta ativa encontrada. Entre em contato com seu personal trainer.",
         });
+        setDietPlan(null);
         return;
       }
 

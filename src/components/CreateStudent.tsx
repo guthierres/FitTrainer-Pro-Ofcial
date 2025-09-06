@@ -68,6 +68,8 @@ const CreateStudent = ({ trainerId, onClose, onSuccess }: CreateStudentProps) =>
     setIsLoading(true);
 
     try {
+      console.log("Creating student for trainer:", trainerId);
+      
       // Convert DD/MM/YYYY to YYYY-MM-DD if birth_date is provided
       let dbBirthDate = null;
       if (formData.birth_date) {
@@ -106,16 +108,41 @@ const CreateStudent = ({ trainerId, onClose, onSuccess }: CreateStudentProps) =>
 
       console.log("Attempting to create student with data:", studentData);
 
+      // Test connection first
+      const { data: testData, error: testError } = await supabase
+        .from("personal_trainers")
+        .select("id, name")
+        .eq("id", trainerId)
+        .single();
+
+      if (testError) {
+        console.error("Trainer verification failed:", testError);
+        toast({
+          title: "Erro",
+          description: "Personal trainer não encontrado. Faça login novamente.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      console.log("Trainer verified:", testData);
+
       const { data, error } = await supabase
         .from("students")
         .insert(studentData)
         .select();
 
       if (error) {
-        console.error("Database error:", error);
+        console.error("Database error details:", {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint
+        });
+        
         toast({
           title: "Erro",
-          description: `Não foi possível cadastrar o aluno: ${error.message}`,
+          description: `Erro ${error.code}: ${error.message}`,
           variant: "destructive",
         });
         return;

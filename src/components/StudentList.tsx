@@ -72,28 +72,17 @@ const StudentList = ({ trainerId }: StudentListProps) => {
   const loadStudents = async () => {
     try {
       setIsLoading(true);
-      const { data, error } = await supabase
+      
+      // Primeiro, buscar os alunos
+      const { data: studentsData, error: studentsError } = await supabase
         .from("students")
-        .select(`
-          *,
-          workout_plans!inner(
-            id,
-            name,
-            active,
-            workout_sessions!inner(id, name)
-          ),
-          diet_plans!inner(
-            id,
-            name,
-            active
-          )
-        `)
+        .select("*")
         .eq("personal_trainer_id", trainerId)
         .eq("active", true)
         .order("created_at", { ascending: false });
 
-      if (error) {
-        console.error("Error loading students:", error);
+      if (studentsError) {
+        console.error("Error loading students:", studentsError);
         toast({
           title: "Erro",
           description: "Não foi possível carregar a lista de alunos.",
@@ -102,10 +91,52 @@ const StudentList = ({ trainerId }: StudentListProps) => {
         return;
       }
 
-      console.log("Students loaded:", data);
-      setStudents(data || []);
+      // Agora buscar os planos para cada aluno
+      const studentsWithPlans = await Promise.all(
+        (studentsData || []).map(async (student) => {
+          try {
+            // Buscar workout plans
+            const { data: workoutPlans } = await supabase
+              .from("workout_plans")
+              .select(`
+                id,
+                name,
+                active,
+                workout_sessions(id, name)
+              `)
+              .eq("student_id", student.id);
+
+            // Buscar diet plans
+            const { data: dietPlans } = await supabase
+              .from("diet_plans")
+              .select("id, name, active")
+              .eq("student_id", student.id);
+
+            return {
+              ...student,
+              workoutPlans: workoutPlans || [],
+              dietPlans: dietPlans || []
+            };
+          } catch (error) {
+            console.error(`Error loading plans for student ${student.id}:`, error);
+            return {
+              ...student,
+              workoutPlans: [],
+              dietPlans: []
+            };
+          }
+        })
+      );
+
+      console.log("Students with plans loaded:", studentsWithPlans);
+      setStudents(studentsWithPlans);
     } catch (error) {
       console.error("Error loading students:", error);
+      toast({
+        title: "Erro",
+        description: "Erro inesperado ao carregar alunos.",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }

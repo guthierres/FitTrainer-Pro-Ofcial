@@ -90,6 +90,19 @@ const EnhancedExerciseSelector = ({
   });
 
   const addExercise = (exercise: Exercise) => {
+    // Check if exercise already exists in session
+    const session = sessions[sessionIndex];
+    const exerciseExists = session.exercises.some(ex => ex.exercise_id === exercise.id);
+    
+    if (exerciseExists) {
+      toast({
+        title: "Exercício já adicionado",
+        description: `${exercise.name} já está neste treino.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     const newExercise: WorkoutExercise = {
       exercise_id: exercise.id,
       exercise_name: exercise.name,
