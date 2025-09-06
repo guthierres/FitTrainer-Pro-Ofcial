@@ -254,7 +254,7 @@ const ExerciseManager = ({ trainerId }: { trainerId: string }) => {
           <DialogTrigger asChild>
             <Button onClick={resetForm}>
               <Plus className="h-4 w-4 mr-2" />
-              Novo Exercício Personalizado
+              Add Exercício
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
