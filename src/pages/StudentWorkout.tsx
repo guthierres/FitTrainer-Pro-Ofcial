@@ -420,18 +420,15 @@ const StudentWorkout = () => {
   const printThermalWorkout = () => {
     if (!workoutPlan || !student) return;
 
-    const currentSession = activeView === 'workout' 
-      ? workoutPlan.workout_sessions.find((s) => s.day_of_week === selectedDay)
-      : null;
+    const currentSession = workoutPlan.workout_sessions.find((s) => s.day_of_week === selectedDay);
 
-    if (activeView === 'workout' && !currentSession) return;
-    if (activeView === 'diet' && !dietPlan) return;
+    if (!currentSession) return;
 
     const printContent = `
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Comprovante ${activeView === 'workout' ? 'Treino' : 'Dieta'} - ${student.name}</title>
+  <title>Comprovante Treino - ${student.name}</title>
   <style>
     @media print {
       @page { margin: 0; size: 80mm auto; }
@@ -451,19 +448,15 @@ const StudentWorkout = () => {
 <body>
   <div class="center bold">
     ================================<br>
-    COMPROVANTE DE ${activeView === 'workout' ? 'TREINO' : 'DIETA'}<br>
+    COMPROVANTE DE TREINO<br>
     ================================
   </div>
   
   <div class="separator"></div>
   
   <div class="bold">Personal Trainer:</div>
-  <div>${activeView === 'workout' ? workoutPlan.personal_trainer.name : dietPlan.personal_trainer.name}</div>
-  ${
-    (activeView === 'workout' ? workoutPlan.personal_trainer.cref : dietPlan.personal_trainer.cref)
-      ? `<div class="small">CREF: ${activeView === 'workout' ? workoutPlan.personal_trainer.cref : dietPlan.personal_trainer.cref}</div>`
-      : ""
-  }
+  <div>${workoutPlan.personal_trainer.name}</div>
+  ${workoutPlan.personal_trainer.cref ? `<div class="small">CREF: ${workoutPlan.personal_trainer.cref}</div>` : ""}
   
   <div class="separator"></div>
   
@@ -473,17 +466,16 @@ const StudentWorkout = () => {
   
   <div class="separator"></div>
   
-  <div class="bold">${activeView === 'workout' ? 'Treino:' : 'Dieta:'}</div>
-  <div>${activeView === 'workout' ? currentSession.name : dietPlan.name}</div>
-  ${activeView === 'workout' ? `<div class="small">Dia: ${daysOfWeek[selectedDay]}</div>` : ''}
+  <div class="bold">Treino:</div>
+  <div>${currentSession.name}</div>
+  <div class="small">Dia: ${daysOfWeek[selectedDay]}</div>
   <div class="small">Data: ${new Date().toLocaleDateString("pt-BR")}</div>
   <div class="small">Hora: ${new Date().toLocaleTimeString("pt-BR")}</div>
   
   <div class="separator"></div>
   
-  <div class="bold">${activeView === 'workout' ? 'EXERCÍCIOS:' : 'REFEIÇÕES:'}</div>
-  ${activeView === 'workout' ? 
-    currentSession.workout_exercises
+  <div class="bold">EXERCÍCIOS:</div>
+  ${currentSession.workout_exercises
     .map(
       (exercise, index) => `
     <div class="exercise">
@@ -518,30 +510,7 @@ const StudentWorkout = () => {
       </div>
     </div>
   `
-    ).join("") :
-    dietPlan.meals.map((meal: any, index: number) => `
-    <div class="exercise">
-      <div class="bold">${index + 1}. ${meal.name}</div>
-      ${meal.time_of_day ? `<div class="small">Horário: ${meal.time_of_day}</div>` : ''}
-      <div class="small ${meal.isCompleted ? 'status-ok' : 'status-pending'}">
-        ${meal.isCompleted ? '[X] CONSUMIDA' : '[ ] PENDENTE'}
-      </div>
-      
-      <div style="margin-top: 1mm;">
-        ${meal.meal_foods?.map((food: any) => `
-          <div class="food-item">
-            <div class="bold">${food.food_name}</div>
-            <div class="small">Qtd: ${food.quantity}${food.unit}</div>
-            ${food.calories ? `<div class="small">Cal: ${food.calories} kcal</div>` : ''}
-            ${food.protein ? `<div class="small">Prot: ${food.protein}g</div>` : ''}
-            ${food.carbs ? `<div class="small">Carb: ${food.carbs}g</div>` : ''}
-            ${food.fat ? `<div class="small">Gord: ${food.fat}g</div>` : ''}
-            ${food.notes ? `<div class="small">Obs: ${food.notes}</div>` : ''}
-          </div>
-        `).join('') || ''}
-      </div>
-    </div>
-  `).join("")}
+    ).join("")}
   
   <div class="separator"></div>
   
@@ -557,7 +526,7 @@ const StudentWorkout = () => {
     <div class="bold">DADOS DO SISTEMA:</div>
     <div class="small">Sistema: FitTrainer-Pro</div>
     <div class="small">Aluno: ${student.name}</div>
-    <div class="small">Personal: ${activeView === 'workout' ? workoutPlan.personal_trainer.name : dietPlan.personal_trainer.name}</div>
+    <div class="small">Personal: ${workoutPlan.personal_trainer.name}</div>
     <div class="small">Token: ${student.unique_link_token.substring(0, 12)}...</div>
     <div class="small">Gerado: ${new Date().toLocaleString("pt-BR")}</div>
   </div>

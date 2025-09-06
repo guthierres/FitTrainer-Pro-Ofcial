@@ -337,19 +337,19 @@ const Dashboard = () => {
             </CardContent>
           </Card>
 
-          <Card className="hover-scale transition-all duration-300 border-0 bg-gradient-to-br from-success/5 to-success/10 hover:shadow-lg">
+          <Card className="hover-scale transition-all duration-300 border-0 bg-gradient-to-br from-purple-600/5 to-purple-600/10 hover:shadow-lg">
             <CardContent className="p-3 sm:p-4 lg:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-lg sm:text-xl lg:text-3xl font-bold text-success">
+                  <p className="text-lg sm:text-xl lg:text-3xl font-bold text-purple-600">
                     {stats.activeDiets}
                   </p>
                   <p className="text-xs sm:text-sm font-medium text-muted-foreground">
                     Dietas Ativas
                   </p>
                 </div>
-                <div className="bg-success/10 p-2 sm:p-3 rounded-xl flex-shrink-0">
-                  <Target className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 text-success" />
+                <div className="bg-purple-600/10 p-2 sm:p-3 rounded-xl flex-shrink-0">
+                  <Target className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 text-purple-600" />
                 </div>
               </div>
             </CardContent>
@@ -528,7 +528,7 @@ const Dashboard = () => {
 
       {/* Edit Profile Modal */}
       {showEditProfile && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 z-50 animate-fade-in overflow-y-auto">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 z-50 animate-fade-in overflow-y-auto">
           <div className="max-w-2xl w-full max-h-[95vh] overflow-y-auto animate-scale-in mobile-scroll my-auto">
             <EditTrainerProfile
               trainer={trainer}
@@ -544,7 +544,7 @@ const Dashboard = () => {
 
       {/* Student Profile Modal */}
       {showStudentProfile && selectedStudent && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 z-50 animate-fade-in overflow-y-auto">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 z-50 animate-fade-in overflow-y-auto">
           <div className="max-w-4xl w-full max-h-[95vh] overflow-y-auto animate-scale-in mobile-scroll my-auto">
             <StudentProfile
               student={selectedStudent}
@@ -557,7 +557,7 @@ const Dashboard = () => {
 
       {/* Quick Workout Creator Modal */}
       {showQuickWorkout && workoutStudent && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 z-50 animate-fade-in overflow-y-auto">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 z-50 animate-fade-in overflow-y-auto">
           <div className="max-w-6xl w-full max-h-[95vh] overflow-y-auto animate-scale-in mobile-scroll my-auto">
             <Card className="shadow-2xl">
               <CardHeader>
@@ -582,7 +582,7 @@ const Dashboard = () => {
 
       {/* Quick Diet Creator Modal */}
       {showQuickDiet && dietStudent && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 z-50 animate-fade-in overflow-y-auto">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 z-50 animate-fade-in overflow-y-auto">
           <div className="max-w-6xl w-full max-h-[95vh] overflow-y-auto animate-scale-in mobile-scroll my-auto">
             <Card className="shadow-2xl">
               <CardHeader>
