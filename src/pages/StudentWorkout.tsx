@@ -15,6 +15,7 @@ import {
   Printer,
   Calendar,
   Apple,
+  X,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -247,11 +248,9 @@ const StudentWorkout = () => {
   const exportWorkout = () => {
     if (!workoutPlan || !student) return;
 
-    const currentSession = activeView === 'workout' 
-      ? workoutPlan.workout_sessions.find((s) => s.day_of_week === selectedDay)
-      : null;
+    const currentSession = workoutPlan.workout_sessions.find((s) => s.day_of_week === selectedDay);
 
-    if (activeView === 'workout' && !currentSession) {
+    if (!currentSession) {
       toast({
         title: "Erro",
         description: "Nenhum treino encontrado para este dia.",
@@ -260,21 +259,13 @@ const StudentWorkout = () => {
       return;
     }
 
-    if (activeView === 'diet' && !dietPlan) {
-      toast({
-        title: "Erro", 
-        description: "Nenhuma dieta encontrada.",
-        variant: "destructive",
-      });
-      return;
-    }
     // Cria o conteúdo HTML para o download
     const htmlContent = `
       <!DOCTYPE html>
       <html>
       <head>
         <meta charset="UTF-8">
-        <title>${activeView === 'workout' ? 'Treino' : 'Dieta'} - ${student.name}</title>
+        <title>Treino - ${student.name}</title>
         <style>
           body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; line-height: 1.6; }
           .header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 20px; margin-bottom: 30px; }
@@ -290,18 +281,17 @@ const StudentWorkout = () => {
       </head>
       <body>
         <div class="header">
-          <h1>COMPROVANTE DE ${activeView === 'workout' ? 'TREINO' : 'DIETA'}</h1>
-          <h2>${activeView === 'workout' ? workoutPlan.name : dietPlan.name}</h2>
-          <p><strong>Personal Trainer:</strong> ${activeView === 'workout' ? workoutPlan.personal_trainer.name : dietPlan.personal_trainer.name}</p>
-          ${(activeView === 'workout' ? workoutPlan.personal_trainer.cref : dietPlan.personal_trainer.cref) ? `<p><strong>CREF:</strong> ${activeView === 'workout' ? workoutPlan.personal_trainer.cref : dietPlan.personal_trainer.cref}</p>` : ""}
+          <h1>COMPROVANTE DE TREINO</h1>
+          <h2>${workoutPlan.name}</h2>
+          <p><strong>Personal Trainer:</strong> ${workoutPlan.personal_trainer.name}</p>
+          ${workoutPlan.personal_trainer.cref ? `<p><strong>CREF:</strong> ${workoutPlan.personal_trainer.cref}</p>` : ""}
           <p><strong>Aluno:</strong> ${student.name}</p>
-          ${activeView === 'workout' ? `<p><strong>Treino:</strong> ${currentSession.name} (${daysOfWeek[selectedDay]})</p>` : ''}
+          <p><strong>Treino:</strong> ${currentSession.name} (${daysOfWeek[selectedDay]})</p>
           <p><strong>Data:</strong> ${new Date().toLocaleDateString("pt-BR")}</p>
         </div>
         
         <div class="exercises">
-          ${activeView === 'workout' ? 
-            currentSession.workout_exercises
+          ${currentSession.workout_exercises
             .map(
               (exercise, index) => `
             <div class="exercise">
@@ -366,30 +356,7 @@ const StudentWorkout = () => {
               }
             </div>
           `
-            ).join("") :
-            dietPlan.meals?.map((meal: any, index: number) => `
-            <div class="exercise">
-              <div class="exercise-header">
-                ${index + 1}. ${meal.name}
-                ${meal.time_of_day ? `<span style="color: #666; font-size: 14px; margin-left: 10px;">🕐 ${meal.time_of_day}</span>` : ''}
-                <span style="float: right;" class="${meal.isCompleted ? 'status-completed' : 'status-pending'}">
-                  ${meal.isCompleted ? '✅ CONSUMIDA' : '⏳ PENDENTE'}
-                </span>
-              </div>
-              
-              ${meal.meal_foods?.map((food: any) => `
-                <div style="margin: 10px 0; padding: 10px; background: #f5f5f5; border-radius: 5px;">
-                  <div style="font-weight: bold;">${food.food_name}</div>
-                  <div>Quantidade: ${food.quantity}${food.unit}</div>
-                  ${food.calories ? `<div>Calorias: ${food.calories} kcal</div>` : ''}
-                  ${food.protein ? `<div>Proteína: ${food.protein}g</div>` : ''}
-                  ${food.carbs ? `<div>Carboidratos: ${food.carbs}g</div>` : ''}
-                  ${food.fat ? `<div>Gorduras: ${food.fat}g</div>` : ''}
-                  ${food.notes ? `<div>Observações: ${food.notes}</div>` : ''}
-                </div>
-              `).join('') || ''}
-            </div>
-          `).join('') || ''}
+            ).join("")}
         </div>
         
         <div class="footer">
@@ -405,14 +372,14 @@ const StudentWorkout = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `${activeView === 'workout' ? 'treino' : 'dieta'}-${student.name}-${new Date().toLocaleDateString("pt-BR").replace(/\//g, "-")}.html`;
+    link.download = `treino-${student.name}-${new Date().toLocaleDateString("pt-BR").replace(/\//g, "-")}.html`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
 
     toast({
-      title: `${activeView === 'workout' ? 'Treino' : 'Dieta'} exportado!`,
+      title: "Treino exportado!",
       description: "Arquivo HTML gerado com sucesso.",
     });
   };
@@ -422,131 +389,203 @@ const StudentWorkout = () => {
 
     const currentSession = workoutPlan.workout_sessions.find((s) => s.day_of_week === selectedDay);
 
-    if (!currentSession) return;
+    if (!currentSession) {
+      toast({
+        title: "Erro",
+        description: "Nenhum treino encontrado para este dia.",
+        variant: "destructive",
+      });
+      return;
+    }
 
-    const printContent = `
+    try {
+      // Criar conteúdo para impressora térmica (80mm)
+      const thermalContent = `
+<!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Comprovante Treino - ${student.name}</title>
+  <title>Comprovante Treino Térmico - ${student.name}</title>
   <style>
-    @media print {
-      @page { margin: 0; size: 80mm auto; }
-      body { width: 80mm; margin: 0; padding: 2mm; font-family: 'Courier New', monospace; font-size: 8px; line-height: 1.2; color: #000; }
-      .center { text-align: center; }
-      .bold { font-weight: bold; }
-      .separator { border-top: 1px dashed #000; margin: 2mm 0; }
-      .small { font-size: 6px; }
-      .exercise { margin: 2mm 0; }
-      .exercise-details { margin: 1mm 0 1mm 3mm; }
-      .status-ok { color: #000; }
-      .status-pending { color: #666; }
-      .qr-section { text-align: center; margin: 3mm 0; padding: 2mm; border: 1px solid #000; }
+    @page { 
+      size: 80mm auto; 
+      margin: 0; 
+    }
+    
+    body { 
+      width: 80mm; 
+      margin: 0; 
+      padding: 3mm; 
+      font-family: 'Courier New', monospace; 
+      font-size: 9px; 
+      line-height: 1.3; 
+      color: #000; 
+      background: white;
+    }
+    
+    .center { text-align: center; }
+    .bold { font-weight: bold; }
+    .separator { 
+      border-top: 1px dashed #000; 
+      margin: 3mm 0; 
+      width: 100%;
+    }
+    .small { font-size: 7px; }
+    .exercise { 
+      margin: 2mm 0; 
+      padding: 1mm 0;
+      border-bottom: 1px dotted #ccc;
+    }
+    .exercise-header { 
+      font-weight: bold; 
+      font-size: 10px; 
+      margin-bottom: 1mm;
+    }
+    .exercise-details { 
+      margin: 1mm 0; 
+      padding-left: 2mm;
+    }
+    .status-ok { font-weight: bold; }
+    .status-pending { color: #666; }
+    .header-box {
+      border: 2px solid #000;
+      padding: 2mm;
+      margin-bottom: 3mm;
+    }
+    .footer-box {
+      border: 1px solid #000;
+      padding: 2mm;
+      margin-top: 3mm;
+      background: #f5f5f5;
     }
   </style>
 </head>
 <body>
-  <div class="center bold">
-    ================================<br>
-    COMPROVANTE DE TREINO<br>
-    ================================
+  <div class="header-box center">
+    <div class="bold" style="font-size: 12px;">FITTRAINER-PRO</div>
+    <div class="bold" style="font-size: 10px;">COMPROVANTE DE TREINO</div>
+    <div class="separator"></div>
+    <div class="small">Data: ${new Date().toLocaleDateString("pt-BR")}</div>
+    <div class="small">Hora: ${new Date().toLocaleTimeString("pt-BR")}</div>
   </div>
   
-  <div class="separator"></div>
-  
-  <div class="bold">Personal Trainer:</div>
+  <div class="bold">PERSONAL TRAINER:</div>
   <div>${workoutPlan.personal_trainer.name}</div>
   ${workoutPlan.personal_trainer.cref ? `<div class="small">CREF: ${workoutPlan.personal_trainer.cref}</div>` : ""}
   
   <div class="separator"></div>
   
-  <div class="bold">Aluno:</div>
-  <div>${student.name}</div>
-  <div class="small">Token: ${student.unique_link_token.substring(0, 12)}...</div>
+  <div class="bold">DADOS DO ALUNO:</div>
+  <div>Nome: ${student.name}</div>
+  <div class="small">ID: ${student.unique_link_token.substring(0, 8)}...</div>
   
   <div class="separator"></div>
   
-  <div class="bold">Treino:</div>
+  <div class="bold">TREINO DO DIA:</div>
   <div>${currentSession.name}</div>
-  <div class="small">Dia: ${daysOfWeek[selectedDay]}</div>
-  <div class="small">Data: ${new Date().toLocaleDateString("pt-BR")}</div>
-  <div class="small">Hora: ${new Date().toLocaleTimeString("pt-BR")}</div>
+  <div class="small">Dia da semana: ${daysOfWeek[selectedDay]}</div>
+  <div class="small">Total de exercícios: ${currentSession.workout_exercises.length}</div>
   
   <div class="separator"></div>
   
-  <div class="bold">EXERCÍCIOS:</div>
+  <div class="bold center">EXERCÍCIOS:</div>
+  
   ${currentSession.workout_exercises
-    .map(
-      (exercise, index) => `
+    .map((exercise, index) => `
     <div class="exercise">
-      <div class="bold">${index + 1}. ${exercise.exercise.name}</div>
-      <div class="small">${exercise.exercise.category.emoji} ${
-        exercise.exercise.category.name
-      }</div>
+      <div class="exercise-header">
+        ${index + 1}. ${exercise.exercise.name}
+      </div>
+      <div class="small">${exercise.exercise.category.emoji} ${exercise.exercise.category.name}</div>
       
       <div class="exercise-details">
-        <div>Séries: ${exercise.sets}</div>
-        ${
-          exercise.reps_min && exercise.reps_max
-            ? `<div>Reps: ${exercise.reps_min}-${exercise.reps_max}</div>`
-            : exercise.reps_min
-            ? `<div>Reps: ${exercise.reps_min}</div>`
-            : ""
+        <div>• Séries: ${exercise.sets}</div>
+        ${exercise.reps_min && exercise.reps_max 
+          ? `<div>• Repetições: ${exercise.reps_min}-${exercise.reps_max}</div>`
+          : exercise.reps_min 
+          ? `<div>• Repetições: ${exercise.reps_min}</div>`
+          : ""
         }
-        ${exercise.weight_kg ? `<div>Peso: ${exercise.weight_kg}kg</div>` : ""}
-        ${exercise.rest_seconds ? `<div>Descanso: ${exercise.rest_seconds}s</div>` : ""}
-        <div class="small ${exercise.isCompleted ? "status-ok" : "status-pending"}">
-          ${exercise.isCompleted ? "[X] FEITO" : "[ ] PENDENTE"}
+        ${exercise.weight_kg ? `<div>• Peso: ${exercise.weight_kg}kg</div>` : ""}
+        ${exercise.rest_seconds ? `<div>• Descanso: ${Math.round(exercise.rest_seconds/60)}min</div>` : ""}
+        
+        <div class="small ${exercise.isCompleted ? 'status-ok' : 'status-pending'}">
+          Status: ${exercise.isCompleted ? '[✓] REALIZADO' : '[ ] PENDENTE'}
         </div>
+        
         ${exercise.notes ? `<div class="small">Obs: ${exercise.notes}</div>` : ""}
-        ${
-          exercise.exercise.instructions
-            ? `<div class="small">Como fazer: ${exercise.exercise.instructions.substring(
-                0,
-                100
-              )}...</div>`
-            : ""
+        
+        ${exercise.exercise.muscle_groups?.length > 0 
+          ? `<div class="small">Músculos: ${exercise.exercise.muscle_groups.slice(0, 3).join(", ")}</div>`
+          : ""
+        }
+        
+        ${exercise.exercise.instructions 
+          ? `<div class="small">Execução: ${exercise.exercise.instructions.substring(0, 80)}...</div>`
+          : ""
         }
       </div>
     </div>
-  `
-    ).join("")}
+  `).join("")}
   
   <div class="separator"></div>
   
-  <div class="qr-section">
-    <div class="bold">LINK DO ALUNO:</div>
-    <div class="small">${window.location.origin}/student/${token}</div>
-    <div class="small">Acesso completo a treinos e dieta</div>
-  </div>
-  
-  <div class="separator"></div>
-  
-  <div class="center">
-    <div class="bold">DADOS DO SISTEMA:</div>
-    <div class="small">Sistema: FitTrainer-Pro</div>
-    <div class="small">Aluno: ${student.name}</div>
-    <div class="small">Personal: ${workoutPlan.personal_trainer.name}</div>
-    <div class="small">Token: ${student.unique_link_token.substring(0, 12)}...</div>
+  <div class="footer-box">
+    <div class="center bold">INFORMAÇÕES DO SISTEMA</div>
+    <div class="small">Sistema: FitTrainer-Pro v1.0</div>
+    <div class="small">Link: ${window.location.origin}/student/${token}</div>
+    <div class="small">Token: ${student.unique_link_token}</div>
     <div class="small">Gerado: ${new Date().toLocaleString("pt-BR")}</div>
   </div>
   
-  <div class="separator"></div>
-    <script>
-      window.onload = function() {
+  <div class="center small" style="margin-top: 3mm;">
+    ================================<br>
+    Assinatura do Personal Trainer<br>
+    <br>
+    _______________________________<br>
+    ${workoutPlan.personal_trainer.name}<br>
+    ${workoutPlan.personal_trainer.cref || 'Personal Trainer'}
+  </div>
+  
+  <script>
+    window.onload = function() {
+      setTimeout(() => {
         window.print();
-        window.onafterprint = function() {
-          window.close();
-        }
-      }
-    </script>
+      }, 500);
+    }
+    
+    window.onafterprint = function() {
+      setTimeout(() => {
+        window.close();
+      }, 1000);
+    }
+  </script>
 </body>
 </html>`;
 
-    const printWindow = window.open("", "_blank");
-    if (printWindow) {
-      printWindow.document.write(printContent);
-      printWindow.document.close();
+      const printWindow = window.open("", "_blank", "width=400,height=600");
+      if (printWindow) {
+        printWindow.document.write(thermalContent);
+        printWindow.document.close();
+        
+        toast({
+          title: "Imprimindo...",
+          description: "Enviando para impressora térmica.",
+        });
+      } else {
+        toast({
+          title: "Erro",
+          description: "Não foi possível abrir a janela de impressão. Verifique se pop-ups estão permitidos.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error printing:", error);
+      toast({
+        title: "Erro",
+        description: "Erro ao preparar impressão.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -609,6 +648,14 @@ const StudentWorkout = () => {
         <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
+              <Button
+                onClick={() => window.history.back()}
+                variant="ghost"
+                size="sm"
+                className="flex-shrink-0"
+              >
+                <X className="h-4 w-4" />
+              </Button>
               <div className="p-2 bg-primary/10 rounded-full flex-shrink-0">
                 <Dumbbell className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
               </div>
