@@ -145,9 +145,6 @@ export function StudentList({ personalTrainerId, onStudentSelect, onCreateWorkou
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Meus Alunos</h2>
-        <Button onClick={onCreateStudent}>
-          Adicionar Aluno
-        </Button>
       </div>
 
       {students.length === 0 ? (
