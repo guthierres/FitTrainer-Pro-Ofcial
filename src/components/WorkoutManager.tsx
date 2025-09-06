@@ -51,7 +51,6 @@ interface WorkoutExercise {
   reps_max?: number;
   weight_kg?: number;
   rest_seconds?: number;
-  rest_minutes?: number;
   notes?: string;
   order_index: number;
   exercise?: {
@@ -119,13 +118,6 @@ const WorkoutManager = ({ trainerId }: { trainerId: string }) => {
         // Transform the data to include rest_minutes for display
         const transformedData = data.map(workout => ({
           ...workout,
-          workout_sessions: workout.workout_sessions?.map(session => ({
-            ...session,
-            workout_exercises: session.workout_exercises?.map(exercise => ({
-              ...exercise,
-              rest_minutes: Math.round((exercise.rest_seconds || 60) / 60)
-            }))
-          }))
         }));
         setWorkouts(transformedData);
       } else {

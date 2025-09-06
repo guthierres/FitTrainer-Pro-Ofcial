@@ -136,7 +136,7 @@ const EditWorkoutSession = ({ session, isOpen, onClose, onSuccess }: EditWorkout
       sets: 3,
       reps_min: 8,
       reps_max: 12,
-      rest_minutes: 1,
+     rest_minutes: 1,
       order_index: sessionData.exercises.length,
     };
 
@@ -321,6 +321,7 @@ const EditWorkoutSession = ({ session, isOpen, onClose, onSuccess }: EditWorkout
                         <Input
                           type="number"
                           step="0.5"
+                         placeholder="1"
                           value={exercise.rest_minutes}
                           onChange={(e) => updateExercise(idx, 'rest_minutes', parseFloat(e.target.value) || 0)}
                           min="0"

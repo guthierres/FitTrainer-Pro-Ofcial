@@ -274,7 +274,7 @@ const QuickWorkoutCreator = ({ studentId, studentName, trainerId, onClose, onSuc
       sets: 3,
       reps_min: 8,
       reps_max: 12,
-      rest_minutes: 1.5,
+      rest_minutes: 1, // 60 segundos padrão
       order_index: sessions[sessionIndex].exercises.length,
     };
 
@@ -289,7 +289,7 @@ const QuickWorkoutCreator = ({ studentId, studentName, trainerId, onClose, onSuc
       description: `${exercise.name} foi adicionado ao treino.`,
     });
     
-    // Don't close dialog to allow adding multiple exercises
+    // Não fecha o diálogo para permitir adicionar múltiplos exercícios
   };
 
   const removeExerciseFromSession = (sessionIndex: number, exerciseIndex: number) => {
@@ -699,36 +699,48 @@ const QuickWorkoutCreator = ({ studentId, studentName, trainerId, onClose, onSuc
                                 <CardTitle className="text-base">Adicionar Exercícios</CardTitle>
                               </CardHeader>
                               <CardContent>
-                                <ScrollArea className="h-48">
+                                <ScrollArea className="h-64">
                                   <div className="grid gap-2">
-                                    {getExercisesByCategory(session.category_id).map(exercise => (
-                                      <div
-                                        key={exercise.id}
-                                        className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 cursor-pointer transition-all"
-                                        onClick={() => addExerciseToSession(sessionIndex, exercise)}
-                                      >
-                                        <div className="flex-1">
-                                          <h4 className="font-medium text-sm">{exercise.name}</h4>
-                                          {exercise.muscle_groups && exercise.muscle_groups.length > 0 && (
-                                            <div className="flex gap-1 mt-1">
-                                              {exercise.muscle_groups.slice(0, 2).map(muscle => (
-                                                <Badge key={muscle} variant="secondary" className="text-xs">
-                                                  {muscle}
-                                                </Badge>
-                                              ))}
-                                            </div>
-                                          )}
-                                        </div>
-                                        <Button
-                                          type="button"
-                                          size="sm"
-                                          variant="ghost"
-                                          className="h-8 w-8 p-0"
+                                    {getExercisesByCategory(session.category_id).map(exercise => {
+                                      const isSelected = session.exercises.some(ex => ex.exercise_id === exercise.id);
+                                      return (
+                                        <div
+                                          key={exercise.id}
+                                          className={`flex items-center justify-between p-3 border rounded-lg transition-all cursor-pointer ${
+                                            isSelected 
+                                              ? 'border-primary bg-primary/10 cursor-not-allowed' 
+                                              : 'hover:bg-muted/50 hover:border-primary/50'
+                                          }`}
+                                          onClick={() => addExerciseToSession(sessionIndex, exercise)}
                                         >
-                                          <Plus className="h-4 w-4" />
-                                        </Button>
-                                      </div>
-                                    ))}
+                                          <div className="flex-1">
+                                            <h4 className="font-medium text-sm">{exercise.name}</h4>
+                                            {exercise.muscle_groups && exercise.muscle_groups.length > 0 && (
+                                              <div className="flex gap-1 mt-1">
+                                                {exercise.muscle_groups.slice(0, 2).map(muscle => (
+                                                  <Badge key={muscle} variant="secondary" className="text-xs">
+                                                    {muscle}
+                                                  </Badge>
+                                                ))}
+                                              </div>
+                                            )}
+                                          </div>
+                                          <Button
+                                            type="button"
+                                            size="sm"
+                                            variant={isSelected ? "default" : "ghost"}
+                                            className="h-8 w-8 p-0"
+                                            disabled={isSelected}
+                                          >
+                                            {isSelected ? (
+                                              <span className="text-xs">✓</span>
+                                            ) : (
+                                              <Plus className="h-4 w-4" />
+                                            )}
+                                          </Button>
+                                        </div>
+                                      );
+                                    })}
                                   </div>
                                 </ScrollArea>
                               </CardContent>
@@ -794,6 +806,7 @@ const QuickWorkoutCreator = ({ studentId, studentName, trainerId, onClose, onSuc
                                               type="number"
                                               step="0.5"
                                               min="0"
+                                              placeholder="1"
                                               value={exercise.rest_minutes}
                                               onChange={(e) => updateExerciseInSession(sessionIndex, exerciseIndex, 'rest_minutes', parseFloat(e.target.value) || 0)}
                                               className="h-8"

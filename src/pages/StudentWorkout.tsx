@@ -247,11 +247,11 @@ const StudentWorkout = () => {
   const exportWorkout = () => {
     if (!workoutPlan || !student) return;
 
-    const currentSession = workoutPlan.workout_sessions.find(
-      (s) => s.day_of_week === selectedDay
-    );
+    const currentSession = activeView === 'workout' 
+      ? workoutPlan.workout_sessions.find((s) => s.day_of_week === selectedDay)
+      : null;
 
-    if (!currentSession) {
+    if (activeView === 'workout' && !currentSession) {
       toast({
         title: "Erro",
         description: "Nenhum treino encontrado para este dia.",
@@ -260,13 +260,21 @@ const StudentWorkout = () => {
       return;
     }
 
+    if (activeView === 'diet' && !dietPlan) {
+      toast({
+        title: "Erro", 
+        description: "Nenhuma dieta encontrada.",
+        variant: "destructive",
+      });
+      return;
+    }
     // Cria o conteúdo HTML para o download
     const htmlContent = `
       <!DOCTYPE html>
       <html>
       <head>
         <meta charset="UTF-8">
-        <title>Treino - ${student.name}</title>
+        <title>${activeView === 'workout' ? 'Treino' : 'Dieta'} - ${student.name}</title>
         <style>
           body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; line-height: 1.6; }
           .header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 20px; margin-bottom: 30px; }
@@ -282,17 +290,18 @@ const StudentWorkout = () => {
       </head>
       <body>
         <div class="header">
-          <h1>COMPROVANTE DE TREINO</h1>
-          <h2>${workoutPlan.name}</h2>
-          <p><strong>Personal Trainer:</strong> ${workoutPlan.personal_trainer.name}</p>
-          ${workoutPlan.personal_trainer.cref ? `<p><strong>CREF:</strong> ${workoutPlan.personal_trainer.cref}</p>` : ""}
+          <h1>COMPROVANTE DE ${activeView === 'workout' ? 'TREINO' : 'DIETA'}</h1>
+          <h2>${activeView === 'workout' ? workoutPlan.name : dietPlan.name}</h2>
+          <p><strong>Personal Trainer:</strong> ${activeView === 'workout' ? workoutPlan.personal_trainer.name : dietPlan.personal_trainer.name}</p>
+          ${(activeView === 'workout' ? workoutPlan.personal_trainer.cref : dietPlan.personal_trainer.cref) ? `<p><strong>CREF:</strong> ${activeView === 'workout' ? workoutPlan.personal_trainer.cref : dietPlan.personal_trainer.cref}</p>` : ""}
           <p><strong>Aluno:</strong> ${student.name}</p>
-          <p><strong>Treino:</strong> ${currentSession.name} (${daysOfWeek[selectedDay]})</p>
+          ${activeView === 'workout' ? `<p><strong>Treino:</strong> ${currentSession.name} (${daysOfWeek[selectedDay]})</p>` : ''}
           <p><strong>Data:</strong> ${new Date().toLocaleDateString("pt-BR")}</p>
         </div>
         
         <div class="exercises">
-          ${currentSession.workout_exercises
+          ${activeView === 'workout' ? 
+            currentSession.workout_exercises
             .map(
               (exercise, index) => `
             <div class="exercise">
@@ -357,13 +366,36 @@ const StudentWorkout = () => {
               }
             </div>
           `
-            )
-            .join("")}
+            ).join("") :
+            dietPlan.meals?.map((meal: any, index: number) => `
+            <div class="exercise">
+              <div class="exercise-header">
+                ${index + 1}. ${meal.name}
+                ${meal.time_of_day ? `<span style="color: #666; font-size: 14px; margin-left: 10px;">🕐 ${meal.time_of_day}</span>` : ''}
+                <span style="float: right;" class="${meal.isCompleted ? 'status-completed' : 'status-pending'}">
+                  ${meal.isCompleted ? '✅ CONSUMIDA' : '⏳ PENDENTE'}
+                </span>
+              </div>
+              
+              ${meal.meal_foods?.map((food: any) => `
+                <div style="margin: 10px 0; padding: 10px; background: #f5f5f5; border-radius: 5px;">
+                  <div style="font-weight: bold;">${food.food_name}</div>
+                  <div>Quantidade: ${food.quantity}${food.unit}</div>
+                  ${food.calories ? `<div>Calorias: ${food.calories} kcal</div>` : ''}
+                  ${food.protein ? `<div>Proteína: ${food.protein}g</div>` : ''}
+                  ${food.carbs ? `<div>Carboidratos: ${food.carbs}g</div>` : ''}
+                  ${food.fat ? `<div>Gorduras: ${food.fat}g</div>` : ''}
+                  ${food.notes ? `<div>Observações: ${food.notes}</div>` : ''}
+                </div>
+              `).join('') || ''}
+            </div>
+          `).join('') || ''}
         </div>
         
         <div class="footer">
           <p><strong>Sistema:</strong> FitTrainer-Pro</p>
           <p><strong>Link do aluno:</strong> ${window.location.origin}/student/${token}</p>
+          <p><strong>Token:</strong> ${student.unique_link_token}</p>
           <p><strong>Gerado em:</strong> ${new Date().toLocaleString("pt-BR")}</p>
         </div>
       </body>
@@ -373,14 +405,14 @@ const StudentWorkout = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `treino-${student.name}-${new Date().toLocaleDateString("pt-BR").replace(/\//g, "-")}.html`;
+    link.download = `${activeView === 'workout' ? 'treino' : 'dieta'}-${student.name}-${new Date().toLocaleDateString("pt-BR").replace(/\//g, "-")}.html`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
 
     toast({
-      title: "Treino exportado!",
+      title: `${activeView === 'workout' ? 'Treino' : 'Dieta'} exportado!`,
       description: "Arquivo HTML gerado com sucesso.",
     });
   };
@@ -388,17 +420,18 @@ const StudentWorkout = () => {
   const printThermalWorkout = () => {
     if (!workoutPlan || !student) return;
 
-    const currentSession = workoutPlan.workout_sessions.find(
-      (s) => s.day_of_week === selectedDay
-    );
+    const currentSession = activeView === 'workout' 
+      ? workoutPlan.workout_sessions.find((s) => s.day_of_week === selectedDay)
+      : null;
 
-    if (!currentSession) return;
+    if (activeView === 'workout' && !currentSession) return;
+    if (activeView === 'diet' && !dietPlan) return;
 
     const printContent = `
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Comprovante Treino - ${student.name}</title>
+  <title>Comprovante ${activeView === 'workout' ? 'Treino' : 'Dieta'} - ${student.name}</title>
   <style>
     @media print {
       @page { margin: 0; size: 80mm auto; }
@@ -418,17 +451,17 @@ const StudentWorkout = () => {
 <body>
   <div class="center bold">
     ================================<br>
-    COMPROVANTE DE TREINO<br>
+    COMPROVANTE DE ${activeView === 'workout' ? 'TREINO' : 'DIETA'}<br>
     ================================
   </div>
   
   <div class="separator"></div>
   
   <div class="bold">Personal Trainer:</div>
-  <div>${workoutPlan.personal_trainer.name}</div>
+  <div>${activeView === 'workout' ? workoutPlan.personal_trainer.name : dietPlan.personal_trainer.name}</div>
   ${
-    workoutPlan.personal_trainer.cref
-      ? `<div class="small">CREF: ${workoutPlan.personal_trainer.cref}</div>`
+    (activeView === 'workout' ? workoutPlan.personal_trainer.cref : dietPlan.personal_trainer.cref)
+      ? `<div class="small">CREF: ${activeView === 'workout' ? workoutPlan.personal_trainer.cref : dietPlan.personal_trainer.cref}</div>`
       : ""
   }
   
@@ -440,16 +473,17 @@ const StudentWorkout = () => {
   
   <div class="separator"></div>
   
-  <div class="bold">Treino:</div>
-  <div>${currentSession.name}</div>
-  <div class="small">Dia: ${daysOfWeek[selectedDay]}</div>
+  <div class="bold">${activeView === 'workout' ? 'Treino:' : 'Dieta:'}</div>
+  <div>${activeView === 'workout' ? currentSession.name : dietPlan.name}</div>
+  ${activeView === 'workout' ? `<div class="small">Dia: ${daysOfWeek[selectedDay]}</div>` : ''}
   <div class="small">Data: ${new Date().toLocaleDateString("pt-BR")}</div>
   <div class="small">Hora: ${new Date().toLocaleTimeString("pt-BR")}</div>
   
   <div class="separator"></div>
   
-  <div class="bold">EXERCÍCIOS:</div>
-  ${currentSession.workout_exercises
+  <div class="bold">${activeView === 'workout' ? 'EXERCÍCIOS:' : 'REFEIÇÕES:'}</div>
+  ${activeView === 'workout' ? 
+    currentSession.workout_exercises
     .map(
       (exercise, index) => `
     <div class="exercise">
@@ -484,33 +518,48 @@ const StudentWorkout = () => {
       </div>
     </div>
   `
-    )
-    .join("")}
+    ).join("") :
+    dietPlan.meals.map((meal: any, index: number) => `
+    <div class="exercise">
+      <div class="bold">${index + 1}. ${meal.name}</div>
+      ${meal.time_of_day ? `<div class="small">Horário: ${meal.time_of_day}</div>` : ''}
+      <div class="small ${meal.isCompleted ? 'status-ok' : 'status-pending'}">
+        ${meal.isCompleted ? '[X] CONSUMIDA' : '[ ] PENDENTE'}
+      </div>
+      
+      <div style="margin-top: 1mm;">
+        ${meal.meal_foods?.map((food: any) => `
+          <div class="food-item">
+            <div class="bold">${food.food_name}</div>
+            <div class="small">Qtd: ${food.quantity}${food.unit}</div>
+            ${food.calories ? `<div class="small">Cal: ${food.calories} kcal</div>` : ''}
+            ${food.protein ? `<div class="small">Prot: ${food.protein}g</div>` : ''}
+            ${food.carbs ? `<div class="small">Carb: ${food.carbs}g</div>` : ''}
+            ${food.fat ? `<div class="small">Gord: ${food.fat}g</div>` : ''}
+            ${food.notes ? `<div class="small">Obs: ${food.notes}</div>` : ''}
+          </div>
+        `).join('') || ''}
+      </div>
+    </div>
+  `).join("")}
   
   <div class="separator"></div>
   
-  <div class="bold center">ASSINATURA:</div>
-  <div class="center">
-    <br>_____________________<br>
-    <div class="small">Aluno</div>
-    <br>_____________________<br>
-    <div class="small">Personal Trainer</div>
-  </div>
   <div class="qr-section">
-    <div class="bold">LINK DO TREINO:</div>
+    <div class="bold">LINK DO ALUNO:</div>
     <div class="small">${window.location.origin}/student/${token}</div>
-    <div class="small">Escaneie o QR Code ou digite o link</div>
+    <div class="small">Acesso completo a treinos e dieta</div>
   </div>
   
   <div class="separator"></div>
   
-  <div class="bold center">ASSINATURAS:</div>
   <div class="center">
-    <br>_____________________<br>
+    <div class="bold">DADOS DO SISTEMA:</div>
+    <div class="small">Sistema: FitTrainer-Pro</div>
     <div class="small">Aluno: ${student.name}</div>
-    <br>_____________________<br>
-    Comprovante válido<br>
-    <div class="small">Personal: ${workoutPlan.personal_trainer.name}</div>
+    <div class="small">Personal: ${activeView === 'workout' ? workoutPlan.personal_trainer.name : dietPlan.personal_trainer.name}</div>
+    <div class="small">Token: ${student.unique_link_token.substring(0, 12)}...</div>
+    <div class="small">Gerado: ${new Date().toLocaleString("pt-BR")}</div>
   </div>
   
   <div class="separator"></div>

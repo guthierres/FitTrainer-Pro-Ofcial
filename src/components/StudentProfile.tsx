@@ -184,22 +184,11 @@ const StudentProfile = ({ student, trainerId, onClose }: StudentProfileProps) =>
   };
 
   const copyStudentLink = () => {
-    const baseUrl = window.location.origin;
-    const workoutLink = `${baseUrl}/student/${student.unique_link_token}`;
-    const dietLink = `${baseUrl}/student/${student.unique_link_token}/diet`;
-    
-    const fullText = `Links do aluno ${student.name}:
-
-🏋️ Treino: ${workoutLink}
-🍎 Dieta: ${dietLink}
-
-Token: ${student.unique_link_token}`;
-    
-    navigator.clipboard.writeText(fullText);
-    navigator.clipboard.writeText(link);
+    const studentLink = `${window.location.origin}/student/${student.unique_link_token}`;
+    navigator.clipboard.writeText(studentLink);
     toast({
       title: "Link copiado!",
-      description: "Os links de treino e dieta foram copiados para a área de transferência.",
+      description: "Link do aluno copiado para a área de transferência.",
     });
   };
 

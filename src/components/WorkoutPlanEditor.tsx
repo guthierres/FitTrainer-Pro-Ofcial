@@ -865,6 +865,7 @@ const WorkoutPlanEditor = ({
                               <Input
                                 type="number"
                                 step="0.5"
+                                placeholder="1"
                                 value={exercise.rest_minutes}
                                 onChange={(e) => updateExercise(session.day_of_week, idx, 'rest_minutes', parseFloat(e.target.value) || 0)}
                                 min="0"
