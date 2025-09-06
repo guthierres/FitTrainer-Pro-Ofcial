@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { CheckCircle, Clock, Apple, Dumbbell, User, Printer } from 'lucide-react';
+import { X } from 'lucide-react';
 
 interface Student {
   id: string;
@@ -316,6 +317,14 @@ export default function StudentDiet() {
         {/* Header */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6 print:shadow-none print:border">
           <div className="flex justify-between items-start mb-4">
+            <Button
+              onClick={() => window.history.back()}
+              variant="ghost"
+              size="sm"
+              className="print:hidden"
+            >
+              <X className="w-4 h-4" />
+            </Button>
             <div>
               <h1 className="text-3xl font-bold text-gray-900 print:text-2xl">{student.name}</h1>
               <p className="text-gray-600">Plano Personalizado</p>
