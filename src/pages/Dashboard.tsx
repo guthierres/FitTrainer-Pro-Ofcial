@@ -15,10 +15,11 @@ import {
   TrendingUp,
   User,
   Settings,
+  X, // Importado para o botão de fechar
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { StudentList } from "@/components/StudentList"; // Certifique-se de que este componente aceita a prop `students`
+import { StudentList } from "@/components/StudentList";
 import CreateStudent from "@/components/CreateStudent";
 import StudentTestCreator from "@/components/StudentTestCreator";
 import StudentProfile from "@/components/StudentProfile";
@@ -48,7 +49,6 @@ interface DashboardStats {
   completedExercisesToday: number;
 }
 
-// Interface para o aluno
 interface Student {
   id: string;
   name: string;
@@ -66,7 +66,7 @@ interface Student {
 
 const Dashboard = () => {
   const [trainer, setTrainer] = useState<PersonalTrainer | null>(null);
-  const [students, setStudents] = useState<Student[]>([]); // Novo estado para a lista de alunos
+  const [students, setStudents] = useState<Student[]>([]);
   const [stats, setStats] = useState<DashboardStats>({
     totalStudents: 0,
     activeWorkouts: 0,
@@ -94,7 +94,7 @@ const Dashboard = () => {
 
     const parsedTrainer = JSON.parse(trainerData);
     setTrainer(parsedTrainer);
-    loadDataWithRetry(parsedTrainer.id); // Carrega dados e estatísticas
+    loadDataWithRetry(parsedTrainer.id);
   }, [navigate]);
 
   const loadDataWithRetry = async (trainerId: string, retries = 3) => {
@@ -119,7 +119,6 @@ const Dashboard = () => {
 
   const loadData = async (trainerId: string) => {
     try {
-      // 1. Get all active students
       const { data: studentsData, error: studentsError } = await supabase
         .from("students")
         .select(`
@@ -146,7 +145,6 @@ const Dashboard = () => {
 
       const students = studentsData || [];
 
-      // 2. Get other stats from the students data
       const activeWorkouts = students.reduce((count, student) => {
         return count + (student.workout_plans?.filter(p => p.active).length || 0);
       }, 0);
@@ -155,7 +153,6 @@ const Dashboard = () => {
         return count + (student.diet_plans?.filter(p => p.active).length || 0);
       }, 0);
 
-      // 3. Get today's completed exercises
       const today = new Date().toISOString().split("T")[0];
       const { data: completionsData, error: completionsError } = await supabase
         .from("exercise_completions")
@@ -177,8 +174,8 @@ const Dashboard = () => {
         completedExercisesToday: completions.length,
       };
 
-      setStudents(students as Student[]); // Atualiza o estado dos alunos
-      setStats(newStats); // Atualiza o estado das estatísticas
+      setStudents(students as Student[]);
+      setStats(newStats);
       console.log("Data loaded successfully:", { students, stats: newStats });
     } catch (error) {
       console.error("Error loading data:", error);
@@ -187,7 +184,6 @@ const Dashboard = () => {
         description: "Não foi possível carregar os dados.",
         variant: "destructive",
       });
-      // Reseta os estados em caso de falha
       setStudents([]);
       setStats({ totalStudents: 0, activeWorkouts: 0, activeDiets: 0, completedExercisesToday: 0 });
     }
@@ -480,7 +476,7 @@ const Dashboard = () => {
                         onClose={() => setShowCreateStudent(false)}
                         onSuccess={() => {
                           setShowCreateStudent(false);
-                          loadData(trainer.id); // Use loadData para recarregar tudo
+                          loadData(trainer.id);
                         }}
                       />
                     ) : showTestCreator ? (
@@ -489,13 +485,13 @@ const Dashboard = () => {
                         onClose={() => setShowTestCreator(false)}
                         onSuccess={() => {
                           setShowTestCreator(false);
-                          loadData(trainer.id); // Use loadData para recarregar tudo
+                          loadData(trainer.id);
                         }}
                       />
                     ) : (
                       <StudentList
                         personalTrainerId={trainer.id}
-                        students={students} // Passa a lista de alunos
+                        students={students}
                         onStudentSelect={handleStudentSelect}
                         onCreateWorkout={handleCreateWorkout}
                         onCreateDiet={handleCreateDiet}
@@ -561,10 +557,15 @@ const Dashboard = () => {
           <div className="max-w-6xl w-full max-h-[95vh] overflow-y-auto animate-scale-in mobile-scroll my-auto">
             <Card className="shadow-2xl">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Dumbbell className="h-5 w-5" />
-                  Criar Treino para {workoutStudent.name}
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <Dumbbell className="h-5 w-5" />
+                    Criar Treino para {workoutStudent.name}
+                  </CardTitle>
+                  <Button variant="ghost" size="sm" onClick={closeQuickWorkout}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
                 <QuickWorkoutCreator
@@ -586,10 +587,15 @@ const Dashboard = () => {
           <div className="max-w-6xl w-full max-h-[95vh] overflow-y-auto animate-scale-in mobile-scroll my-auto">
             <Card className="shadow-2xl">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Target className="h-5 w-5" />
-                  Criar Dieta para {dietStudent.name}
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <Target className="h-5 w-5" />
+                    Criar Dieta para {dietStudent.name}
+                  </CardTitle>
+                  <Button variant="ghost" size="sm" onClick={closeQuickDiet}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
                 <QuickDietCreator
