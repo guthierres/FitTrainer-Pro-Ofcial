@@ -132,6 +132,7 @@ const StudentWorkout = () => {
                 name,
                 muscle_groups,
                 equipment,
+                instructions,
                 category:exercise_categories(name, emoji)
               )
             )
@@ -140,9 +141,10 @@ const StudentWorkout = () => {
         .eq("student_id", studentData.id)
         .eq("active", true)
         .order("order_index", { foreignTable: "workout_sessions.workout_exercises" })
-        .single();
+        .maybeSingle();
 
       if (workoutError || !workoutData) {
+        console.log("No workout found for student:", studentData.id);
         toast({
           title: "Aviso",
           description: "Nenhum treino ativo encontrado.",
@@ -222,6 +224,15 @@ const StudentWorkout = () => {
     const currentSession = workoutPlan.workout_sessions.find(
       s => s.day_of_week === selectedDay
     );
+
+    if (!currentSession) {
+      toast({
+        title: "Erro",
+        description: "Nenhum treino encontrado para este dia.",
+        variant: "destructive",
+      });
+      return;
+    }
 
    // Create HTML content for better formatting
    const htmlContent = `
@@ -381,16 +392,16 @@ const StudentWorkout = () => {
     @media print {
       @page { 
         margin: 0; 
-        size: 80mm auto; 
+        size: 80mm auto;
       }
       body { 
         width: 80mm; 
         margin: 0; 
         padding: 2mm;
         font-family: 'Courier New', monospace; 
-       font-size: 9px;
+        font-size: 8px;
         line-height: 1.2;
-       color: #000;
+        color: #000;
       }
       .center { text-align: center; }
       .bold { font-weight: bold; }
@@ -398,19 +409,25 @@ const StudentWorkout = () => {
         border-top: 1px dashed #000; 
         margin: 2mm 0; 
       }
-     .small { font-size: 7px; }
+      .small { font-size: 6px; }
       .exercise { margin: 2mm 0; }
       .exercise-details { margin: 1mm 0 1mm 3mm; }
-     .status-ok { color: #000; }
-     .status-pending { color: #666; }
+      .status-ok { color: #000; }
+      .status-pending { color: #666; }
+      .qr-section { 
+        text-align: center; 
+        margin: 3mm 0; 
+        padding: 2mm;
+        border: 1px solid #000;
+      }
     }
   </style>
 </head>
 <body>
   <div class="center bold">
-   ================================<br>
+    ================================<br>
     COMPROVANTE DE TREINO<br>
-   ================================
+    ================================
   </div>
   
   <div class="separator"></div>
@@ -423,7 +440,7 @@ const StudentWorkout = () => {
   
   <div class="bold">Aluno:</div>
   <div>${student.name}</div>
- <div class="small">ID: ${student.id.substring(0, 8)}...</div>
+  <div class="small">Token: ${student.unique_link_token.substring(0, 12)}...</div>
   
   <div class="separator"></div>
   
@@ -431,6 +448,7 @@ const StudentWorkout = () => {
   <div>${currentSession.name}</div>
   <div class="small">Dia: ${daysOfWeek[selectedDay]}</div>
   <div class="small">Data: ${new Date().toLocaleDateString('pt-BR')}</div>
+  <div class="small">Hora: ${new Date().toLocaleTimeString('pt-BR')}</div>
   
   <div class="separator"></div>
   
@@ -438,7 +456,7 @@ const StudentWorkout = () => {
   ${currentSession.workout_exercises.map((exercise, index) => `
     <div class="exercise">
       <div class="bold">${index + 1}. ${exercise.exercise.name}</div>
-     <div class="small">${exercise.exercise.category.emoji} ${exercise.exercise.category.name}</div>
+      <div class="small">${exercise.exercise.category.emoji} ${exercise.exercise.category.name}</div>
       
       <div class="exercise-details">
         <div>Séries: ${exercise.sets}</div>
@@ -448,10 +466,11 @@ const StudentWorkout = () => {
         }
         ${exercise.weight_kg ? `<div>Peso: ${exercise.weight_kg}kg</div>` : ''}
         ${exercise.rest_seconds ? `<div>Descanso: ${exercise.rest_seconds}s</div>` : ''}
-       <div class="small ${exercise.isCompleted ? 'status-ok' : 'status-pending'}">
-         ${exercise.isCompleted ? '[X] FEITO' : '[ ] PENDENTE'}
-       </div>
+        <div class="small ${exercise.isCompleted ? 'status-ok' : 'status-pending'}">
+          ${exercise.isCompleted ? '[X] FEITO' : '[ ] PENDENTE'}
+        </div>
         ${exercise.notes ? `<div class="small">Obs: ${exercise.notes}</div>` : ''}
+        ${exercise.exercise.instructions ? `<div class="small">Como fazer: ${exercise.exercise.instructions.substring(0, 100)}...</div>` : ''}
       </div>
     </div>
   `).join('')}
@@ -465,15 +484,24 @@ const StudentWorkout = () => {
    <br>_____________________<br>
    <div class="small">Personal Trainer</div>
  </div>
- 
- <div class="separator"></div>
- 
-  <div class="center small">
-    Sistema: FitTrainer-Pro<br>
-    ${new Date().toLocaleString('pt-BR')}
+  <div class="qr-section">
+    <div class="bold">LINK DO TREINO:</div>
+    <div class="small">${window.location.origin}/student/${token}</div>
+    <div class="small">Escaneie o QR Code ou digite o link</div>
   </div>
   
-  <script>
+  <div class="separator"></div>
+  
+  <div class="bold center">ASSINATURAS:</div>
+  <div class="center">
+    <br>_____________________<br>
+    <div class="small">Aluno: ${student.name}</div>
+    <br>_____________________<br>
+    Comprovante válido<br>
+    <div class="small">Personal: ${workoutPlan.personal_trainer.name}</div>
+  </div>
+  
+  <div class="separator"></div>
     window.onload = function() {
       window.print();
       window.onafterprint = function() {
@@ -720,6 +748,13 @@ const StudentWorkout = () => {
                         <div className="text-sm pt-1">
                           <span className="text-muted-foreground">Observações:</span>
                           <p className="text-sm ml-2">{exercise.notes}</p>
+                        </div>
+                      )}
+
+                      {exercise.exercise.instructions && (
+                        <div className="text-sm pt-2 border-t">
+                          <span className="text-muted-foreground">Como executar:</span>
+                          <p className="text-sm ml-2 italic">{exercise.exercise.instructions}</p>
                         </div>
                       )}
                       {/* --- FIM DA CORREÇÃO --- */}

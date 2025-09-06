@@ -68,8 +68,29 @@ const Dashboard = () => {
     
     const parsedTrainer = JSON.parse(trainerData);
     setTrainer(parsedTrainer);
-    loadStats(parsedTrainer.id);
+    loadStatsWithRetry(parsedTrainer.id);
   }, [navigate]);
+
+  const loadStatsWithRetry = async (trainerId: string, retries = 3) => {
+    for (let i = 0; i < retries; i++) {
+      try {
+        await loadStats(trainerId);
+        break;
+      } catch (error) {
+        console.error(`Stats loading attempt ${i + 1} failed:`, error);
+        if (i === retries - 1) {
+          toast({
+            title: "Aviso",
+            description: "Não foi possível carregar algumas estatísticas.",
+            variant: "destructive",
+          });
+        } else {
+          // Wait before retry
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+    }
+  };
 
   const loadStats = async (trainerId: string) => {
     try {
@@ -80,12 +101,22 @@ const Dashboard = () => {
         .eq("personal_trainer_id", trainerId)
         .eq("active", true);
 
+      if (studentsError) {
+        console.error("Students error:", studentsError);
+        throw studentsError;
+      }
+
       // Get active workout plans
       const { data: workouts, error: workoutsError } = await supabase
         .from("workout_plans")
         .select("id")
         .eq("personal_trainer_id", trainerId)
         .eq("active", true);
+
+      if (workoutsError) {
+        console.error("Workouts error:", workoutsError);
+        throw workoutsError;
+      }
 
       // Get active diet plans
       const { data: diets, error: dietsError } = await supabase
@@ -94,34 +125,38 @@ const Dashboard = () => {
         .eq("personal_trainer_id", trainerId)
         .eq("active", true);
 
+      if (dietsError) {
+        console.error("Diets error:", dietsError);
+        throw dietsError;
+      }
+
       // Get today's completed exercises
       const today = new Date().toISOString().split('T')[0];
       const { data: completions, error: completionsError } = await supabase
         .from("exercise_completions")
-       .select(`
-         id,
-         workout_exercise_id!inner(
-           workout_session_id!inner(
-             workout_plan_id!inner(
-               personal_trainer_id
-             )
-           )
-         )
-       `)
-       .eq("workout_exercise_id.workout_session_id.workout_plan_id.personal_trainer_id", trainerId)
+        .select("id, student_id")
+        .in("student_id", students?.map(s => s.id) || [])
         .gte("completed_at", `${today}T00:00:00`)
         .lt("completed_at", `${today}T23:59:59`);
 
-      if (!studentsError && !workoutsError && !dietsError && !completionsError) {
-        setStats({
-          totalStudents: students?.length || 0,
-          activeWorkouts: workouts?.length || 0,
-          activeDiets: diets?.length || 0,
-          completedExercisesToday: completions?.length || 0
-        });
+      if (completionsError) {
+        console.error("Completions error:", completionsError);
+        // Don't throw for completions error, just log it
       }
+
+      const newStats = {
+        totalStudents: students?.length || 0,
+        activeWorkouts: workouts?.length || 0,
+        activeDiets: diets?.length || 0,
+        completedExercisesToday: completions?.length || 0
+      };
+
+      console.log("Stats loaded successfully:", newStats);
+      setStats(newStats);
+
     } catch (error) {
       console.error("Error loading stats:", error);
+      throw error;
     }
   };
 

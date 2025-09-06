@@ -76,13 +76,13 @@ const StudentList = ({ trainerId }: StudentListProps) => {
         .from("students")
         .select(`
           *,
-          workout_plans(
+          workout_plans!inner(
             id,
             name,
             active,
-            workout_sessions(id, name)
+            workout_sessions!inner(id, name)
           ),
-          diet_plans(
+          diet_plans!inner(
             id,
             name,
             active
@@ -93,6 +93,7 @@ const StudentList = ({ trainerId }: StudentListProps) => {
         .order("created_at", { ascending: false });
 
       if (error) {
+        console.error("Error loading students:", error);
         toast({
           title: "Erro",
           description: "Não foi possível carregar a lista de alunos.",
@@ -101,6 +102,7 @@ const StudentList = ({ trainerId }: StudentListProps) => {
         return;
       }
 
+      console.log("Students loaded:", data);
       setStudents(data || []);
     } catch (error) {
       console.error("Error loading students:", error);

@@ -22,10 +22,12 @@ import {
   Apple,
   ExternalLink,
   Copy,
-  Trash2
+  Trash2,
+  Settings
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import WorkoutPlanEditor from "./WorkoutPlanEditor";
 
 interface Student {
   id: string;
@@ -68,6 +70,7 @@ const StudentProfile = ({ student, trainerId, onClose }: StudentProfileProps) =>
   const [isEditing, setIsEditing] = useState(false);
   const [workoutPlans, setWorkoutPlans] = useState<WorkoutPlan[]>([]);
   const [dietPlans, setDietPlans] = useState<DietPlan[]>([]);
+  const [editingWorkout, setEditingWorkout] = useState<WorkoutPlan | null>(null);
   const [formData, setFormData] = useState({
     name: student.name,
     email: student.email || "",
@@ -440,6 +443,17 @@ const StudentProfile = ({ student, trainerId, onClose }: StudentProfileProps) =>
                     {(!student.goals || student.goals.length === 0) && (
                       <p className="p-2 bg-muted rounded text-muted-foreground">Nenhum objetivo definido</p>
                     )}
+                    <div className="flex gap-2 mt-3">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setEditingWorkout(plan)}
+                        className="flex-1"
+                      >
+                        <Settings className="h-4 w-4 mr-2" />
+                        Editar Treino
+                      </Button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -536,6 +550,21 @@ const StudentProfile = ({ student, trainerId, onClose }: StudentProfileProps) =>
           </Card>
         </div>
       </ScrollArea>
+
+      {/* Edit Workout Modal */}
+      {editingWorkout && (
+        <WorkoutPlanEditor
+          workoutPlan={editingWorkout}
+          studentId={student.id}
+          trainerId={trainerId}
+          isOpen={!!editingWorkout}
+          onClose={() => setEditingWorkout(null)}
+          onSuccess={() => {
+            setEditingWorkout(null);
+            loadStudentPlans();
+          }}
+        />
+      )}
     </div>
   );
 };

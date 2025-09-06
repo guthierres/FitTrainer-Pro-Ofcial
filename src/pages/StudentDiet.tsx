@@ -227,123 +227,290 @@ const StudentDiet = () => {
      <title>Dieta - ${student.name}</title>
      <style>
        body { 
-         font-family: Arial, sans-serif; 
+         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
          max-width: 800px; 
          margin: 0 auto; 
-         padding: 20px;
+         padding: 30px;
          line-height: 1.6;
+         color: #333;
+         background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+       }
+       .container {
+         background: white;
+         border-radius: 15px;
+         padding: 30px;
+         box-shadow: 0 10px 30px rgba(0,0,0,0.1);
        }
        .header { 
          text-align: center; 
-         border-bottom: 2px solid #16a34a; 
-         padding-bottom: 20px; 
-         margin-bottom: 30px;
+         border-bottom: 3px solid #16a34a; 
+         padding-bottom: 25px; 
+         margin-bottom: 35px;
+         background: linear-gradient(135deg, #16a34a, #22c55e);
+         color: white;
+         margin: -30px -30px 35px -30px;
+         padding: 30px;
+         border-radius: 15px 15px 0 0;
+       }
+       .header h1 {
+         margin: 0 0 10px 0;
+         font-size: 28px;
+         font-weight: bold;
+       }
+       .header h2 {
+         margin: 0 0 15px 0;
+         font-size: 22px;
+         opacity: 0.9;
+       }
+       .info-grid {
+         display: grid;
+         grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+         gap: 15px;
+         margin: 20px 0;
+       }
+       .info-item {
+         background: rgba(255,255,255,0.9);
+         padding: 10px 15px;
+         border-radius: 8px;
+         border-left: 4px solid #16a34a;
        }
        .meal { 
-         border: 1px solid #ddd; 
-         margin: 15px 0; 
-         padding: 15px; 
-         border-radius: 8px;
-         background: #f0fdf4;
+         border: 2px solid #e5e7eb; 
+         margin: 20px 0; 
+         padding: 20px; 
+         border-radius: 12px;
+         background: linear-gradient(135deg, #f0fdf4, #ecfdf5);
+         transition: all 0.3s ease;
+       }
+       .meal:hover {
+         border-color: #16a34a;
+         transform: translateY(-2px);
+         box-shadow: 0 5px 15px rgba(22, 163, 74, 0.1);
        }
        .meal-header { 
          font-weight: bold; 
-         font-size: 18px; 
+         font-size: 20px; 
          color: #16a34a;
-         margin-bottom: 10px;
+         margin-bottom: 15px;
+         display: flex;
+         justify-content: space-between;
+         align-items: center;
        }
        .food-item { 
          background: white; 
-         margin: 8px 0; 
-         padding: 10px; 
-         border-radius: 4px;
+         margin: 12px 0; 
+         padding: 15px; 
+         border-radius: 8px;
          border-left: 3px solid #16a34a;
+         box-shadow: 0 2px 4px rgba(0,0,0,0.05);
        }
        .macros { 
          display: grid; 
-         grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); 
-         gap: 10px;
-         margin: 10px 0;
+         grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); 
+         gap: 12px;
+         margin: 15px 0;
        }
        .macro-item { 
          text-align: center; 
-         background: #f9fafb; 
-         padding: 8px; 
-         border-radius: 4px;
+         background: #f0fdf4; 
+         padding: 12px; 
+         border-radius: 8px;
+         border: 1px solid #bbf7d0;
        }
-       .status-completed { color: #16a34a; font-weight: bold; }
-       .status-pending { color: #ea580c; font-weight: bold; }
+       .macro-label {
+         font-size: 12px;
+         color: #6b7280;
+         font-weight: 600;
+         text-transform: uppercase;
+         letter-spacing: 0.5px;
+       }
+       .macro-value {
+         font-size: 16px;
+         font-weight: bold;
+         color: #16a34a;
+         margin-top: 2px;
+       }
+       .status-completed { 
+         color: #16a34a; 
+         font-weight: bold;
+         background: #dcfce7;
+         padding: 5px 10px;
+         border-radius: 20px;
+         font-size: 14px;
+       }
+       .status-pending { 
+         color: #ea580c; 
+         font-weight: bold;
+         background: #fed7aa;
+         padding: 5px 10px;
+         border-radius: 20px;
+         font-size: 14px;
+       }
        .footer { 
          text-align: center; 
-         margin-top: 30px; 
-         padding-top: 20px; 
-         border-top: 1px solid #ddd;
-         color: #666;
+         margin-top: 40px; 
+         padding-top: 25px; 
+         border-top: 2px solid #e5e7eb;
+         color: #6b7280;
+         background: #f9fafb;
+         margin-left: -30px;
+         margin-right: -30px;
+         margin-bottom: -30px;
+         padding: 25px 30px;
+         border-radius: 0 0 15px 15px;
        }
        @media print {
-         body { margin: 0; padding: 15px; }
-         .meal { break-inside: avoid; }
+         body { 
+           margin: 0; 
+           padding: 15px; 
+           background: white;
+         }
+         .container {
+           box-shadow: none;
+           border: 1px solid #ddd;
+         }
+         .meal { 
+           break-inside: avoid; 
+           border: 1px solid #ddd;
+           background: white;
+         }
+         .meal:hover {
+           transform: none;
+           box-shadow: none;
+         }
        }
      </style>
    </head>
    <body>
-     <div class="header">
-       <h1>COMPROVANTE DE DIETA</h1>
-       <h2>${dietPlan.name}</h2>
-       <p><strong>Personal Trainer:</strong> ${dietPlan.personal_trainer.name}</p>
-       ${dietPlan.personal_trainer.cref ? `<p><strong>CREF:</strong> ${dietPlan.personal_trainer.cref}</p>` : ''}
-       <p><strong>Aluno:</strong> ${student.name}</p>
-       <p><strong>Data:</strong> ${new Date().toLocaleDateString('pt-BR')}</p>
-     </div>
-     
-     ${(dietPlan.daily_calories || dietPlan.daily_protein || dietPlan.daily_carbs || dietPlan.daily_fat) ? `
-       <div style="background: #f0fdf4; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-         <h3 style="color: #16a34a; margin-bottom: 10px;">OBJETIVOS NUTRICIONAIS DIÁRIOS:</h3>
-         <div class="macros">
-           ${dietPlan.daily_calories ? `<div class="macro-item"><strong>${dietPlan.daily_calories}</strong><br>kcal</div>` : ''}
-           ${dietPlan.daily_protein ? `<div class="macro-item"><strong>${dietPlan.daily_protein}g</strong><br>Proteínas</div>` : ''}
-           ${dietPlan.daily_carbs ? `<div class="macro-item"><strong>${dietPlan.daily_carbs}g</strong><br>Carboidratos</div>` : ''}
-           ${dietPlan.daily_fat ? `<div class="macro-item"><strong>${dietPlan.daily_fat}g</strong><br>Gorduras</div>` : ''}
+     <div class="container">
+       <div class="header">
+         <h1>🍎 PLANO ALIMENTAR PERSONALIZADO</h1>
+         <h2>${dietPlan.name}</h2>
+         <div class="info-grid">
+           <div class="info-item">
+             <strong>Personal Trainer:</strong> ${dietPlan.personal_trainer.name}
+           </div>
+           ${dietPlan.personal_trainer.cref ? `
+             <div class="info-item">
+               <strong>CREF:</strong> ${dietPlan.personal_trainer.cref}
+             </div>
+           ` : ''}
+           <div class="info-item">
+             <strong>Aluno:</strong> ${student.name}
+           </div>
+           <div class="info-item">
+             <strong>Data:</strong> ${new Date().toLocaleDateString('pt-BR')}
+           </div>
          </div>
        </div>
-     ` : ''}
      
-     <div class="meals">
-       ${dietPlan.meals.map((meal, index) => `
-         <div class="meal">
-           <div class="meal-header">
-             ${index + 1}. ${meal.name}
-             ${meal.time_of_day ? `(${meal.time_of_day})` : ''}
-             <span style="float: right;" class="${meal.isCompleted ? 'status-completed' : 'status-pending'}">
-               ${meal.isCompleted ? '✅ CONSUMIDA' : '⏳ PENDENTE'}
-             </span>
+       ${(dietPlan.daily_calories || dietPlan.daily_protein || dietPlan.daily_carbs || dietPlan.daily_fat) ? `
+         <div style="background: linear-gradient(135deg, #f0fdf4, #ecfdf5); padding: 25px; border-radius: 12px; margin-bottom: 30px; border: 2px solid #bbf7d0;">
+           <h3 style="color: #16a34a; margin-bottom: 20px; font-size: 20px; text-align: center;">🎯 OBJETIVOS NUTRICIONAIS DIÁRIOS</h3>
+           <div class="macros">
+             ${dietPlan.daily_calories ? `
+               <div class="macro-item">
+                 <div class="macro-label">Calorias</div>
+                 <div class="macro-value">${dietPlan.daily_calories} kcal</div>
+               </div>
+             ` : ''}
+             ${dietPlan.daily_protein ? `
+               <div class="macro-item">
+                 <div class="macro-label">Proteínas</div>
+                 <div class="macro-value">${dietPlan.daily_protein}g</div>
+               </div>
+             ` : ''}
+             ${dietPlan.daily_carbs ? `
+               <div class="macro-item">
+                 <div class="macro-label">Carboidratos</div>
+                 <div class="macro-value">${dietPlan.daily_carbs}g</div>
+               </div>
+             ` : ''}
+             ${dietPlan.daily_fat ? `
+               <div class="macro-item">
+                 <div class="macro-label">Gorduras</div>
+                 <div class="macro-value">${dietPlan.daily_fat}g</div>
+               </div>
+             ` : ''}
            </div>
-           
-           ${meal.meal_foods.map(food => `
-             <div class="food-item">
-               <strong>${food.food_name}</strong> - ${food.quantity}${food.unit}
-               ${(food.calories || food.protein || food.carbs || food.fat) ? `
-                 <div class="macros" style="margin-top: 5px;">
-                   ${food.calories ? `<div class="macro-item">${food.calories} kcal</div>` : ''}
-                   ${food.protein ? `<div class="macro-item">${food.protein}g prot</div>` : ''}
-                   ${food.carbs ? `<div class="macro-item">${food.carbs}g carb</div>` : ''}
-                   ${food.fat ? `<div class="macro-item">${food.fat}g gord</div>` : ''}
-                 </div>
-               ` : ''}
-               ${food.notes ? `<div style="margin-top: 5px; font-style: italic;">Obs: ${food.notes}</div>` : ''}
-             </div>
-           `).join('')}
          </div>
-       `).join('')}
-     </div>
+       ` : ''}
      
-     <div style="background: #f9fafb; padding: 10px; border-radius: 4px; text-align: center; margin: 15px 0;">
-       <div class="bold">TOTAL DO DIA: ${totalCalories} kcal</div>
-     </div>
+       <div class="meals">
+         ${dietPlan.meals.map((meal, index) => `
+           <div class="meal">
+             <div class="meal-header">
+               <div>
+                 <span style="color: #16a34a; font-size: 24px; margin-right: 10px;">${index + 1}.</span>
+                 ${meal.name}
+                 ${meal.time_of_day ? `<span style="color: #6b7280; font-size: 16px; margin-left: 10px;">🕐 ${meal.time_of_day}</span>` : ''}
+               </div>
+               <span class="${meal.isCompleted ? 'status-completed' : 'status-pending'}">
+                 ${meal.isCompleted ? '✅ CONSUMIDA' : '⏳ PENDENTE'}
+               </span>
+             </div>
+           
+             ${meal.meal_foods.map(food => `
+               <div class="food-item">
+                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                   <strong style="font-size: 16px; color: #1f2937;">${food.food_name}</strong>
+                   <span style="background: #dbeafe; color: #1e40af; padding: 4px 8px; border-radius: 12px; font-size: 14px; font-weight: 600;">
+                     ${food.quantity}${food.unit}
+                   </span>
+                 </div>
+                 ${(food.calories || food.protein || food.carbs || food.fat) ? `
+                   <div class="macros" style="margin-top: 10px;">
+                     ${food.calories ? `
+                       <div class="macro-item">
+                         <div class="macro-label">Calorias</div>
+                         <div class="macro-value">${food.calories} kcal</div>
+                       </div>
+                     ` : ''}
+                     ${food.protein ? `
+                       <div class="macro-item">
+                         <div class="macro-label">Proteína</div>
+                         <div class="macro-value">${food.protein}g</div>
+                       </div>
+                     ` : ''}
+                     ${food.carbs ? `
+                       <div class="macro-item">
+                         <div class="macro-label">Carboidratos</div>
+                         <div class="macro-value">${food.carbs}g</div>
+                       </div>
+                     ` : ''}
+                     ${food.fat ? `
+                       <div class="macro-item">
+                         <div class="macro-label">Gorduras</div>
+                         <div class="macro-value">${food.fat}g</div>
+                       </div>
+                     ` : ''}
+                   </div>
+                 ` : ''}
+                 ${food.notes ? `
+                   <div style="margin-top: 12px; padding: 10px; background: #fffbeb; border-radius: 6px; border-left: 4px solid #f59e0b;">
+                     <strong>📝 Observações:</strong> ${food.notes}
+                   </div>
+                 ` : ''}
+               </div>
+             `).join('')}
+           </div>
+         `).join('')}
+       </div>
      
-     <div class="footer">
-       <p><strong>Sistema:</strong> FitTrainer-Pro</p>
-       <p><strong>Gerado em:</strong> ${new Date().toLocaleString('pt-BR')}</p>
+       <div style="background: linear-gradient(135deg, #16a34a, #22c55e); color: white; padding: 20px; border-radius: 12px; text-align: center; margin: 25px 0; box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3);">
+         <div style="font-size: 24px; font-weight: bold;">📊 TOTAL DO DIA: ${totalCalories} kcal</div>
+       </div>
+     
+       <div class="footer">
+         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+           <div><strong>Sistema:</strong> FitTrainer-Pro</div>
+           <div><strong>Link da Dieta:</strong> ${window.location.origin}/student/${token}/diet</div>
+           <div><strong>Gerado em:</strong> ${new Date().toLocaleString('pt-BR')}</div>
+         </div>
+         <p style="margin-top: 20px; font-size: 12px; opacity: 0.7;">
+           Este documento foi gerado automaticamente pelo sistema FitTrainer-Pro
+         </p>
+       </div>
      </div>
    </body>
    </html>`;
@@ -380,16 +547,16 @@ const StudentDiet = () => {
     @media print {
       @page { 
         margin: 0; 
-        size: 80mm auto; 
+        size: 80mm auto;
       }
       body { 
         width: 80mm; 
         margin: 0; 
         padding: 2mm;
         font-family: 'Courier New', monospace; 
-       font-size: 9px;
+        font-size: 8px;
         line-height: 1.2;
-       color: #000;
+        color: #000;
       }
       .center { text-align: center; }
       .bold { font-weight: bold; }
@@ -397,19 +564,25 @@ const StudentDiet = () => {
         border-top: 1px dashed #000; 
         margin: 2mm 0; 
       }
-     .small { font-size: 7px; }
+      .small { font-size: 6px; }
       .meal { margin: 2mm 0; }
       .food-item { margin: 1mm 0 1mm 3mm; }
-     .status-ok { color: #000; }
-     .status-pending { color: #666; }
+      .status-ok { color: #000; }
+      .status-pending { color: #666; }
+      .qr-section { 
+        text-align: center; 
+        margin: 3mm 0; 
+        padding: 2mm;
+        border: 1px solid #000;
+      }
     }
   </style>
 </head>
 <body>
   <div class="center bold">
-   ================================<br>
+    ================================<br>
     COMPROVANTE DE DIETA<br>
-   ================================
+    ================================
   </div>
   
   <div class="separator"></div>
@@ -422,13 +595,14 @@ const StudentDiet = () => {
   
   <div class="bold">Aluno:</div>
   <div>${student.name}</div>
- <div class="small">ID: ${student.id.substring(0, 8)}...</div>
+  <div class="small">Token: ${student.unique_link_token.substring(0, 12)}...</div>
   
   <div class="separator"></div>
   
   <div class="bold">Plano Alimentar:</div>
   <div>${dietPlan.name}</div>
   <div class="small">Data: ${new Date().toLocaleDateString('pt-BR')}</div>
+  <div class="small">Hora: ${new Date().toLocaleTimeString('pt-BR')}</div>
   
   <div class="separator"></div>
   
@@ -445,9 +619,9 @@ const StudentDiet = () => {
     <div class="meal">
       <div class="bold">${index + 1}. ${meal.name}</div>
       ${meal.time_of_day ? `<div class="small">Horário: ${meal.time_of_day}</div>` : ''}
-     <div class="small ${meal.isCompleted ? 'status-ok' : 'status-pending'}">
-       ${meal.isCompleted ? '[X] CONSUMIDA' : '[ ] PENDENTE'}
-     </div>
+      <div class="small ${meal.isCompleted ? 'status-ok' : 'status-pending'}">
+        ${meal.isCompleted ? '[X] CONSUMIDA' : '[ ] PENDENTE'}
+      </div>
       
       <div style="margin-top: 1mm;">
         ${meal.meal_foods.map(food => `
@@ -467,6 +641,12 @@ const StudentDiet = () => {
   
   <div class="separator"></div>
   
+  <div class="qr-section">
+    <div class="bold">LINK DA DIETA:</div>
+    <div class="small">${window.location.origin}/student/${token}/diet</div>
+    <div class="small">Escaneie o QR Code ou digite o link</div>
+  </div>
+  
   <div class="bold center">Total do Dia: ${totalCalories} kcal</div>
   
  <div class="separator"></div>
@@ -478,15 +658,18 @@ const StudentDiet = () => {
    <br>_____________________<br>
    <div class="small">Personal Trainer</div>
  </div>
- 
   <div class="separator"></div>
   
-  <div class="center small">
+  <div class="bold center">ASSINATURAS:</div>
+  <div class="separator"></div>
+  
+    <div class="small">Aluno: ${student.name}</div>
     Sistema: FitTrainer-Pro<br>
-    ${new Date().toLocaleString('pt-BR')}
+    Comprovante válido<br>
+    <div class="small">Personal: ${dietPlan.personal_trainer.name}</div>
   </div>
   
-  <script>
+  <div class="separator"></div>
     window.onload = function() {
       window.print();
       window.onafterprint = function() {
