@@ -18,6 +18,7 @@ import {
   X,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { setStudentContext } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 interface Student {
@@ -98,15 +99,11 @@ const StudentWorkout = () => {
       
       console.log("Loading student data for student number:", studentNumber);
       
-      // Set student context for RLS policies
-      if (studentNumber) {
-        const { error: contextError } = await supabase.rpc('set_student_context_by_number', {
-          student_num: studentNumber
-        });
-        
-        if (contextError) {
-          console.warn("Could not set student context by number:", contextError);
-        }
+      // First, try to set a simple context for debugging
+      try {
+        await supabase.rpc('set_student_context_by_number', { student_num: studentNumber });
+      } catch (contextError) {
+        console.warn("Context function not available, proceeding without context:", contextError);
       }
 
       // Busca o aluno pelo número
@@ -131,6 +128,13 @@ const StudentWorkout = () => {
 
       console.log("Student found:", studentData);
       setStudent(studentData);
+
+      // Try to set student context with token
+      try {
+        await supabase.rpc('set_student_context_by_token', { token: studentData.unique_link_token });
+      } catch (contextError) {
+        console.warn("Could not set token context:", contextError);
+      }
 
       // Busca o plano de treino ativo com as sessões e exercícios
       const { data: workoutData, error: workoutError } = await supabase

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { setStudentContext } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -116,15 +117,11 @@ export default function StudentDiet() {
 
   const fetchStudentData = async () => {
     try {
-      // Set student context for RLS policies
-      if (studentNumber) {
-        const { error: contextError } = await supabase.rpc('set_student_context_by_number', {
-          student_num: studentNumber
-        });
-        
-        if (contextError) {
-          console.warn("Could not set student context by number:", contextError);
-        }
+      // First, try to set a simple context for debugging
+      try {
+        await supabase.rpc('set_student_context_by_number', { student_num: studentNumber });
+      } catch (contextError) {
+        console.warn("Context function not available, proceeding without context:", contextError);
       }
 
       // Fetch student data
@@ -145,6 +142,13 @@ export default function StudentDiet() {
 
       setStudent(studentData);
       setTrainer(studentData.personal_trainers);
+
+      // Try to set student context with token
+      try {
+        await supabase.rpc('set_student_context_by_token', { token: studentData.unique_link_token });
+      } catch (contextError) {
+        console.warn("Could not set token context:", contextError);
+      }
 
       // Fetch diet plan
       const { data: dietData, error: dietError } = await supabase

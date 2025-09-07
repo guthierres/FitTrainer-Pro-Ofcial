@@ -19,4 +19,5 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
       'x-client-info': 'fittrainer-pro@1.0.0',
     },
   },
-});
+}
+)
