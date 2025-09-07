@@ -17,6 +17,7 @@ interface Student {
   weight: number | null;
   height: number | null;
   goals: string[] | null;
+  student_number: string;
   personal_trainer_id: string;
 }
 
@@ -96,7 +97,7 @@ interface WorkoutExercise {
 }
 
 export default function StudentDiet() {
-  const { token } = useParams<{ token: string }>();
+  const { studentNumber } = useParams<{ studentNumber: string }>();
   const [student, setStudent] = useState<Student | null>(null);
   const [trainer, setTrainer] = useState<PersonalTrainer | null>(null);
   const [dietPlan, setDietPlan] = useState<DietPlan | null>(null);
@@ -108,13 +109,24 @@ export default function StudentDiet() {
   const { toast } = useToast();
 
   useEffect(() => {
-    if (token) {
+    if (studentNumber) {
       fetchStudentData();
     }
-  }, [token]);
+  }, [studentNumber]);
 
   const fetchStudentData = async () => {
     try {
+      // Set student context for RLS policies
+      if (studentNumber) {
+        const { error: contextError } = await supabase.rpc('set_student_context_by_number', {
+          student_num: studentNumber
+        });
+        
+        if (contextError) {
+          console.warn("Could not set student context by number:", contextError);
+        }
+      }
+
       // Fetch student data
       const { data: studentData, error: studentError } = await supabase
         .from('students')
@@ -124,7 +136,7 @@ export default function StudentDiet() {
             id, name, email, phone, cref
           )
         `)
-        .eq('unique_link_token', token)
+        .eq('student_number', studentNumber)
         .eq('active', true)
         .single();
 
@@ -356,6 +368,7 @@ export default function StudentDiet() {
             <div>
               <h3 className="font-semibold text-gray-900 mb-2">DADOS DO ALUNO</h3>
               <p><strong>Nome:</strong> {student.name}</p>
+              <p><strong>Número:</strong> {student.student_number}</p>
               {student.email && <p><strong>Email:</strong> {student.email}</p>}
               {student.phone && <p><strong>Telefone:</strong> {student.phone}</p>}
               {student.weight && <p><strong>Peso:</strong> {student.weight}kg</p>}

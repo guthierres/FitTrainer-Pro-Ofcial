@@ -102,11 +102,11 @@ const StudentTestCreator = ({ trainerId, onClose, onSuccess }: StudentTestCreato
       }
 
       console.log("Insert successful:", data);
-      setDebugInfo(prev => prev + `✅ Sucesso!\nAluno criado:\n${JSON.stringify(data, null, 2)}\n`);
+      setDebugInfo(prev => prev + `✅ Sucesso!\nAluno criado:\n${JSON.stringify(data, null, 2)}\nNúmero do aluno: ${data[0]?.student_number}\n`);
 
       toast({
         title: "Sucesso!",
-        description: "Aluno de teste criado com sucesso!",
+        description: `Aluno de teste criado! Número: ${data[0]?.student_number}`,
       });
 
       // Wait a moment to show success, then call onSuccess

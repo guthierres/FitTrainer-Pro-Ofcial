@@ -373,6 +373,7 @@ export type Database = {
           name: string
           personal_trainer_id: string
           phone: string | null
+          student_number: string | null
           unique_link_token: string
           updated_at: string
           weight: number | null
@@ -389,6 +390,7 @@ export type Database = {
           name: string
           personal_trainer_id: string
           phone?: string | null
+          student_number?: string | null
           unique_link_token: string
           updated_at?: string
           weight?: number | null
@@ -405,6 +407,7 @@ export type Database = {
           name?: string
           personal_trainer_id?: string
           phone?: string | null
+          student_number?: string | null
           unique_link_token?: string
           updated_at?: string
           weight?: number | null

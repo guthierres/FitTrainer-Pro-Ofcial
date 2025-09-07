@@ -25,6 +25,7 @@ interface Student {
   weight: number | null;
   height: number | null;
   goals: string[] | null;
+  student_number: string;
   unique_link_token: string;
   active: boolean;
   created_at: string;
@@ -59,7 +60,7 @@ export function StudentList({ personalTrainerId, onStudentSelect, onCreateWorkou
     try {
       const { data, error } = await supabase
         .from('students')
-        .select('*')
+        .select('*, student_number')
         .eq('personal_trainer_id', personalTrainerId)
         .eq('active', true)
         .order('created_at', { ascending: false });
@@ -102,8 +103,8 @@ export function StudentList({ personalTrainerId, onStudentSelect, onCreateWorkou
     }
   };
 
-  const handleShareStudent = async (token: string, studentName: string) => {
-    const studentUrl = `${window.location.origin}/student/${token}`;
+  const handleShareStudent = async (studentNumber: string, studentName: string) => {
+    const studentUrl = `${window.location.origin}/student/${studentNumber}`;
     
     if (navigator.share && /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
       try {
@@ -168,6 +169,7 @@ export function StudentList({ personalTrainerId, onStudentSelect, onCreateWorkou
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="text-sm text-muted-foreground space-y-1">
+                  <p>🔢 Nº {student.student_number}</p>
                   {student.email && <p>📧 {student.email}</p>}
                   {student.phone && <p>📱 {student.phone}</p>}
                   {student.weight && <p>⚖️ {student.weight}kg</p>}
@@ -188,7 +190,7 @@ export function StudentList({ personalTrainerId, onStudentSelect, onCreateWorkou
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => window.open(`/student/${student.unique_link_token}`, '_blank')}
+                    onClick={() => window.open(`/student/${student.student_number}`, '_blank')}
                     className="flex-1"
                   >
                     <Eye className="w-4 h-4 mr-1" />
@@ -228,7 +230,7 @@ export function StudentList({ personalTrainerId, onStudentSelect, onCreateWorkou
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => handleShareStudent(student.unique_link_token, student.name)}
+                    onClick={() => handleShareStudent(student.student_number, student.name)}
                     className="flex-1"
                   >
                     <Share2 className="w-4 h-4 mr-1" />

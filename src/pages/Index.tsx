@@ -203,7 +203,7 @@ const Index = () => {
                 <h5 className="font-semibold mb-2">🔗 Link de Aluno Demo</h5>
                 <p className="text-sm opacity-90">
                   Teste o acesso do aluno com<br/>
-                  token de exemplo disponível
+                  número de estudante: 100001
                 </p>
               </div>
             </div>

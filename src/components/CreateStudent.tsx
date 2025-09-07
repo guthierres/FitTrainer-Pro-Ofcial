@@ -106,6 +106,7 @@ const CreateStudent = ({ trainerId, onClose, onSuccess }: CreateStudentProps) =>
         goals: goals.length > 0 ? goals : null,
         medical_restrictions: formData.medical_restrictions ? formData.medical_restrictions.trim() : null,
         unique_link_token: generateUniqueToken(),
+        // student_number será gerado automaticamente pelo trigger
         active: true,
       };
 
@@ -155,7 +156,7 @@ const CreateStudent = ({ trainerId, onClose, onSuccess }: CreateStudentProps) =>
 
       toast({
         title: "Sucesso!",
-        description: `Aluno ${formData.name} cadastrado com sucesso!`,
+        description: `Aluno ${formData.name} cadastrado com sucesso! Número: ${data[0]?.student_number}`,
       });
 
       onSuccess();

@@ -39,6 +39,8 @@ interface Student {
   height?: number;
   goals?: string[];
   medical_restrictions?: string;
+  student_number: string;
+  student_number: string;
   unique_link_token: string;
   created_at: string;
 }
@@ -184,7 +186,7 @@ const StudentProfile = ({ student, trainerId, onClose }: StudentProfileProps) =>
   };
 
   const copyStudentLink = () => {
-    const studentLink = `${window.location.origin}/student/${student.unique_link_token}`;
+    const studentLink = `${window.location.origin}/student/${student.student_number}`;
     navigator.clipboard.writeText(studentLink);
     toast({
       title: "Link copiado!",
@@ -249,6 +251,7 @@ const StudentProfile = ({ student, trainerId, onClose }: StudentProfileProps) =>
               <h1 className="text-xl sm:text-2xl font-bold">{student.name}</h1>
               <p className="text-sm text-muted-foreground">
                 Cadastrado em {new Date(student.created_at).toLocaleDateString('pt-BR')}
+                <br/>Número do Aluno: {student.student_number}
               </p>
             </div>
           </div>
@@ -280,7 +283,7 @@ const StudentProfile = ({ student, trainerId, onClose }: StudentProfileProps) =>
           <Button
             variant="outline"
             size="sm"
-            onClick={() => window.open(`/student/${student.unique_link_token}`, '_blank')}
+            onClick={() => window.open(`/student/${student.student_number}`, '_blank')}
             className="h-10"
           >
             <ExternalLink className="h-4 w-4 mr-2" />
@@ -289,7 +292,7 @@ const StudentProfile = ({ student, trainerId, onClose }: StudentProfileProps) =>
           <Button
             variant="outline"
             size="sm"
-            onClick={() => window.open(`/student/${student.unique_link_token}/diet`, '_blank')}
+            onClick={() => window.open(`/student/${student.student_number}/diet`, '_blank')}
             className="h-10"
           >
             <Apple className="h-4 w-4 mr-2" />

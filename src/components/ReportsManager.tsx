@@ -475,6 +475,7 @@ const ReportsManager = ({ trainerId }: { trainerId: string }) => {
                       <strong>Dados do Aluno:</strong> {report.student.name}
                       {report.student.email && ` • ${report.student.email}`}
                       {report.student.phone && ` • ${report.student.phone}`}
+                      {report.student.student_number && ` • Nº ${report.student.student_number}`}
                     </p>
                     <p className="text-sm">
                       <strong>Personal Trainer:</strong> {report.trainer.name} ({report.trainer.cpf})

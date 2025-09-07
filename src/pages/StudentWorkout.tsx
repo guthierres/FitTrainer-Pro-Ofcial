@@ -23,6 +23,7 @@ import { useToast } from "@/hooks/use-toast";
 interface Student {
   id: string;
   name: string;
+  student_number: string;
   unique_link_token: string;
   personal_trainer_id: string;
 }
@@ -68,7 +69,7 @@ interface WorkoutPlan {
 }
 
 const StudentWorkout = () => {
-  const { token } = useParams<{ token: string }>();
+  const { studentNumber } = useParams<{ studentNumber: string }>();
   const [student, setStudent] = useState<Student | null>(null);
   const [workoutPlan, setWorkoutPlan] = useState<WorkoutPlan | null>(null);
   const [selectedDay, setSelectedDay] = useState<number>(new Date().getDay());
@@ -86,43 +87,43 @@ const StudentWorkout = () => {
   ];
 
   useEffect(() => {
-    if (token) {
+    if (studentNumber) {
       loadStudentData();
     }
-  }, [token]);
+  }, [studentNumber]);
 
   const loadStudentData = async () => {
     try {
       setIsLoading(true);
       
-      console.log("Loading student data for token:", token);
+      console.log("Loading student data for student number:", studentNumber);
       
       // Set student context for RLS policies
-      if (token) {
-        const { error: contextError } = await supabase.rpc('set_student_context', {
-          student_token: token
+      if (studentNumber) {
+        const { error: contextError } = await supabase.rpc('set_student_context_by_number', {
+          student_num: studentNumber
         });
         
         if (contextError) {
-          console.warn("Could not set student context:", contextError);
+          console.warn("Could not set student context by number:", contextError);
         }
       }
 
-      // Busca o aluno pelo token
+      // Busca o aluno pelo número
       const { data: studentData, error: studentError } = await supabase
         .from("students")
         .select("*")
-        .eq("unique_link_token", token)
+        .eq("student_number", studentNumber)
         .eq("active", true)
         .single();
 
-      console.log("Student query result:", { studentData, studentError });
+      console.log("Student query by number result:", { studentData, studentError });
 
       if (studentError || !studentData) {
-        console.error("Student not found:", studentError);
+        console.error("Student not found by number:", studentError);
         toast({
           title: "Erro",
-          description: "Link inválido ou expirado.",
+          description: "Número de estudante inválido ou estudante inativo.",
           variant: "destructive",
         });
         return;
@@ -361,8 +362,8 @@ const StudentWorkout = () => {
         
         <div class="footer">
           <p><strong>Sistema:</strong> FitTrainer-Pro</p>
-          <p><strong>Link do aluno:</strong> ${window.location.origin}/student/${token}</p>
-          <p><strong>Token:</strong> ${student.unique_link_token}</p>
+          <p><strong>Link do aluno:</strong> ${window.location.origin}/student/${studentNumber}</p>
+          <p><strong>Número do Aluno:</strong> ${student.student_number}</p>
           <p><strong>Gerado em:</strong> ${new Date().toLocaleString("pt-BR")}</p>
         </div>
       </body>
@@ -372,7 +373,7 @@ const StudentWorkout = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `treino-${student.name}-${new Date().toLocaleDateString("pt-BR").replace(/\//g, "-")}.html`;
+    link.download = `treino-${student.student_number}-${student.name}-${new Date().toLocaleDateString("pt-BR").replace(/\//g, "-")}.html`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -533,8 +534,8 @@ const StudentWorkout = () => {
   <div class="footer-box">
     <div class="center bold">INFORMAÇÕES DO SISTEMA</div>
     <div class="small">Sistema: FitTrainer-Pro v1.0</div>
-    <div class="small">Link: ${window.location.origin}/student/${token}</div>
-    <div class="small">Token: ${student.unique_link_token}</div>
+    <div class="small">Link: ${window.location.origin}/student/${studentNumber}</div>
+    <div class="small">Número: ${student.student_number}</div>
     <div class="small">Gerado: ${new Date().toLocaleString("pt-BR")}</div>
   </div>
   
@@ -675,7 +676,7 @@ const StudentWorkout = () => {
             </div>
             <div className="grid grid-cols-3 gap-2 w-full sm:w-auto">
               <Button
-                onClick={() => (window.location.href = `/student/${token}/diet`)}
+                onClick={() => (window.location.href = `/student/${studentNumber}/diet`)}
                 variant="secondary"
                 size="sm"
                 className="text-xs sm:text-sm h-9 sm:h-10"
