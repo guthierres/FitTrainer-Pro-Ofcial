@@ -256,128 +256,118 @@ const StudentWorkout = () => {
       return;
     }
 
-    // Cria o conteúdo HTML para o download
-    const htmlContent = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="UTF-8">
-        <title>Treino - ${student.name}</title>
-        <style>
-          body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; line-height: 1.6; }
-          .header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 20px; margin-bottom: 30px; }
-          .exercise { border: 1px solid #ddd; margin: 15px 0; padding: 15px; border-radius: 8px; background: #f9f9f9; }
-          .exercise-header { font-weight: bold; font-size: 18px; color: #333; margin-bottom: 10px; }
-          .exercise-details { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 10px 0; }
-          .detail-item { background: white; padding: 8px; border-radius: 4px; border-left: 3px solid #0ea5e9; }
-          .status-completed { color: #16a34a; font-weight: bold; }
-          .status-pending { color: #ea580c; font-weight: bold; }
-          .footer { text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; color: #666; }
-          @media print { body { margin: 0; padding: 15px; } .exercise { break-inside: avoid; } }
-        </style>
-      </head>
-      <body>
-        <div class="header">
-          <h1>COMPROVANTE DE TREINO</h1>
-          <h2>${workoutPlan.name}</h2>
-          <p><strong>Personal Trainer:</strong> ${workoutPlan.personal_trainer.name}</p>
-          ${workoutPlan.personal_trainer.cref ? `<p><strong>CREF:</strong> ${workoutPlan.personal_trainer.cref}</p>` : ""}
-          <p><strong>Aluno:</strong> ${student.name}</p>
-          <p><strong>Treino:</strong> ${currentSession.name} (${daysOfWeek[selectedDay]})</p>
-          <p><strong>Data:</strong> ${new Date().toLocaleDateString("pt-BR")}</p>
-        </div>
-        
-        <div class="exercises">
-          ${currentSession.workout_exercises
-            .map(
-              (exercise, index) => `
-            <div class="exercise">
-              <div class="exercise-header">
-                ${index + 1}. ${exercise.exercise.name}
-                <span style="float: right;" class="${
-                  exercise.isCompleted ? "status-completed" : "status-pending"
-                }">
-                  ${exercise.isCompleted ? "✅ REALIZADO" : "⏳ PENDENTE"}
-                </span>
-              </div>
-              <p><strong>Categoria:</strong> ${exercise.exercise.category.emoji} ${
-                exercise.exercise.category.name
-              }</p>
-              
-              <div class="exercise-details">
-                <div class="detail-item">
-                  <strong>Séries:</strong> ${exercise.sets}
-                </div>
-                ${
-                  exercise.reps_min && exercise.reps_max
-                    ? `
-                  <div class="detail-item">
-                    <strong>Repetições:</strong> ${exercise.reps_min}-${exercise.reps_max}
-                  </div>
-                `
-                    : exercise.reps_min
-                    ? `
-                  <div class="detail-item">
-                    <strong>Repetições:</strong> ${exercise.reps_min}
-                  </div>
-                `
-                    : ""
-                }
-                ${
-                  exercise.weight_kg
-                    ? `
-                  <div class="detail-item">
-                    <strong>Peso:</strong> ${exercise.weight_kg}kg
-                  </div>
-                `
-                    : ""
-                }
-                ${
-                  exercise.rest_seconds
-                    ? `
-                  <div class="detail-item">
-                    <strong>Descanso:</strong> ${exercise.rest_seconds}s
-                  </div>
-                `
-                    : ""
-                }
-              </div>
-              
-              ${exercise.notes ? `<p><strong>Observações:</strong> ${exercise.notes}</p>` : ""}
-              ${
-                exercise.exercise.muscle_groups?.length > 0
-                  ? `
-                <p><strong>Músculos:</strong> ${exercise.exercise.muscle_groups.join(", ")}</p>
-              `
-                  : ""
-              }
-            </div>
-          `
-            ).join("")}
-        </div>
-        
-        <div class="footer">
-          <p><strong>Sistema:</strong> FitTrainer-Pro</p>
-          <p><strong>Link do aluno:</strong> ${window.location.origin}/student/${studentNumber}</p>
-          <p><strong>Número do Aluno:</strong> ${student.student_number}</p>
-          <p><strong>Gerado em:</strong> ${new Date().toLocaleString("pt-BR")}</p>
-        </div>
-      </body>
-      </html>`;
+    // Generate PDF using jsPDF
+    import('jspdf').then(({ jsPDF }) => {
+      const doc = new jsPDF();
+      
+      // Configure font
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(16);
+      
+      let y = 20;
+      const lineHeight = 7;
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const margin = 20;
+      const contentWidth = pageWidth - (margin * 2);
 
-    const blob = new Blob([htmlContent], { type: "text/html;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `treino-${student.student_number}-${student.name}-${new Date().toLocaleDateString("pt-BR").replace(/\//g, "-")}.html`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+      // Header
+      doc.setFontSize(18);
+      doc.text("COMPROVANTE DE TREINO", pageWidth / 2, y, { align: "center" });
+      y += lineHeight * 2;
+      
+      doc.setFontSize(14);
+      doc.text(workoutPlan.name, pageWidth / 2, y, { align: "center" });
+      y += lineHeight * 2;
 
-    toast({
-      title: "Treino exportado!",
-      description: "Arquivo HTML gerado com sucesso.",
+      // Trainer info
+      doc.setFontSize(10);
+      doc.text(`Personal Trainer: ${workoutPlan.personal_trainer.name}`, margin, y);
+      y += lineHeight;
+      if (workoutPlan.personal_trainer.cref) {
+        doc.text(`CREF: ${workoutPlan.personal_trainer.cref}`, margin, y);
+        y += lineHeight;
+      }
+      
+      // Student info
+      doc.text(`Aluno: ${student.name}`, margin, y);
+      y += lineHeight;
+      doc.text(`Treino: ${currentSession.name} (${daysOfWeek[selectedDay]})`, margin, y);
+      y += lineHeight;
+      doc.text(`Data: ${new Date().toLocaleDateString("pt-BR")}`, margin, y);
+      y += lineHeight * 2;
+
+      // Exercises
+      doc.setFontSize(12);
+      doc.text("EXERCÍCIOS:", margin, y);
+      y += lineHeight;
+      
+      doc.setFontSize(10);
+      currentSession.workout_exercises.forEach((exercise, index) => {
+        // Check if we need a new page
+        if (y > 250) {
+          doc.addPage();
+          y = 20;
+        }
+        
+        // Exercise name and status
+        const status = exercise.isCompleted ? "✅ REALIZADO" : "⏳ PENDENTE";
+        doc.text(`${index + 1}. ${exercise.exercise.name}`, margin, y);
+        doc.text(status, pageWidth - margin, y, { align: "right" });
+        y += lineHeight;
+        
+        // Exercise details
+        doc.text(`   Categoria: ${exercise.exercise.category.emoji} ${exercise.exercise.category.name}`, margin, y);
+        y += lineHeight;
+        
+        let details = `   Séries: ${exercise.sets}`;
+        if (exercise.reps_min && exercise.reps_max) {
+          details += ` | Repetições: ${exercise.reps_min}-${exercise.reps_max}`;
+        } else if (exercise.reps_min) {
+          details += ` | Repetições: ${exercise.reps_min}`;
+        }
+        if (exercise.weight_kg) {
+          details += ` | Peso: ${exercise.weight_kg}kg`;
+        }
+        if (exercise.rest_seconds) {
+          details += ` | Descanso: ${exercise.rest_seconds}s`;
+        }
+        
+        doc.text(details, margin, y);
+        y += lineHeight;
+        
+        if (exercise.exercise.muscle_groups?.length > 0) {
+          doc.text(`   Músculos: ${exercise.exercise.muscle_groups.join(", ")}`, margin, y);
+          y += lineHeight;
+        }
+        
+        if (exercise.notes) {
+          doc.text(`   Observações: ${exercise.notes}`, margin, y);
+          y += lineHeight;
+        }
+        
+        y += lineHeight / 2; // Extra space between exercises
+      });
+
+      // Footer
+      y += lineHeight;
+      doc.setFontSize(8);
+      doc.text(`Sistema: FitTrainer-Pro | Link: ${window.location.origin}/student/${studentNumber}`, margin, y);
+      y += lineHeight / 2;
+      doc.text(`Número do Aluno: ${student.student_number} | Gerado em: ${new Date().toLocaleString("pt-BR")}`, margin, y);
+
+      // Save PDF
+      doc.save(`treino-${student.student_number}-${student.name}-${new Date().toLocaleDateString("pt-BR").replace(/\//g, "-")}.pdf`);
+      
+      toast({
+        title: "Treino exportado!",
+        description: "Arquivo PDF gerado com sucesso.",
+      });
+    }).catch(() => {
+      toast({
+        title: "Erro",
+        description: "Não foi possível gerar o PDF. Tente novamente.",
+        variant: "destructive"
+      });
     });
   };
 

@@ -306,7 +306,140 @@ export default function StudentDiet() {
   };
 
   const handlePrint = () => {
-    window.print();
+    // Generate PDF using jsPDF
+    import('jspdf').then(({ jsPDF }) => {
+      const doc = new jsPDF();
+      
+      // Configure font
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(16);
+      
+      let y = 20;
+      const lineHeight = 7;
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const margin = 20;
+
+      // Header
+      doc.setFontSize(18);
+      doc.text("PLANO ALIMENTAR", pageWidth / 2, y, { align: "center" });
+      y += lineHeight * 2;
+      
+      if (dietPlan) {
+        doc.setFontSize(14);
+        doc.text(dietPlan.name, pageWidth / 2, y, { align: "center" });
+        y += lineHeight * 2;
+      }
+
+      // Trainer and student info
+      doc.setFontSize(10);
+      if (trainer) {
+        doc.text(`Personal Trainer: ${trainer.name}`, margin, y);
+        y += lineHeight;
+        if (trainer.cref) {
+          doc.text(`CREF: ${trainer.cref}`, margin, y);
+          y += lineHeight;
+        }
+      }
+      
+      doc.text(`Aluno: ${student.name}`, margin, y);
+      y += lineHeight;
+      doc.text(`Número: ${student.student_number}`, margin, y);
+      y += lineHeight;
+      doc.text(`Data: ${new Date().toLocaleDateString("pt-BR")}`, margin, y);
+      y += lineHeight * 2;
+
+      // Diet goals if available
+      if (dietPlan && (dietPlan.daily_calories || dietPlan.daily_protein || dietPlan.daily_carbs || dietPlan.daily_fat)) {
+        doc.setFontSize(12);
+        doc.text("METAS DIÁRIAS:", margin, y);
+        y += lineHeight;
+        
+        doc.setFontSize(10);
+        if (dietPlan.daily_calories) {
+          doc.text(`Calorias: ${dietPlan.daily_calories} kcal`, margin, y);
+          y += lineHeight;
+        }
+        if (dietPlan.daily_protein) {
+          doc.text(`Proteína: ${dietPlan.daily_protein}g`, margin, y);
+          y += lineHeight;
+        }
+        if (dietPlan.daily_carbs) {
+          doc.text(`Carboidratos: ${dietPlan.daily_carbs}g`, margin, y);
+          y += lineHeight;
+        }
+        if (dietPlan.daily_fat) {
+          doc.text(`Gordura: ${dietPlan.daily_fat}g`, margin, y);
+          y += lineHeight;
+        }
+        y += lineHeight;
+      }
+
+      // Meals
+      if (meals.length > 0) {
+        doc.setFontSize(12);
+        doc.text("REFEIÇÕES:", margin, y);
+        y += lineHeight * 1.5;
+        
+        meals.forEach((meal, mealIndex) => {
+          // Check if we need a new page
+          if (y > 250) {
+            doc.addPage();
+            y = 20;
+          }
+          
+          doc.setFontSize(11);
+          doc.text(`${mealIndex + 1}. ${meal.name}`, margin, y);
+          if (meal.time_of_day) {
+            doc.text(`${meal.time_of_day}`, pageWidth - margin, y, { align: "right" });
+          }
+          y += lineHeight;
+          
+          doc.setFontSize(9);
+          meal.meal_foods.forEach((food) => {
+            doc.text(`   • ${food.quantity}${food.unit} ${food.food_name}`, margin + 5, y);
+            if (food.calories) {
+              doc.text(`${food.calories} kcal`, pageWidth - margin, y, { align: "right" });
+            }
+            y += lineHeight * 0.8;
+            
+            if (food.protein || food.carbs || food.fat) {
+              let macros = "     ";
+              if (food.protein) macros += `P: ${food.protein}g `;
+              if (food.carbs) macros += `C: ${food.carbs}g `;
+              if (food.fat) macros += `G: ${food.fat}g`;
+              doc.text(macros, margin + 5, y);
+              y += lineHeight * 0.8;
+            }
+            
+            if (food.notes) {
+              doc.text(`     Obs: ${food.notes}`, margin + 5, y);
+              y += lineHeight * 0.8;
+            }
+          });
+          
+          y += lineHeight / 2;
+        });
+      }
+
+      // Footer
+      y += lineHeight;
+      doc.setFontSize(8);
+      doc.text(`Sistema: FitTrainer-Pro | Gerado em: ${new Date().toLocaleString("pt-BR")}`, margin, y);
+
+      // Save PDF
+      doc.save(`dieta-${student.student_number}-${student.name}-${new Date().toLocaleDateString("pt-BR").replace(/\//g, "-")}.pdf`);
+      
+      toast({
+        title: "Dieta exportada!",
+        description: "Arquivo PDF gerado com sucesso.",
+      });
+    }).catch(() => {
+      toast({
+        title: "Erro",
+        description: "Não foi possível gerar o PDF. Tente novamente.",
+        variant: "destructive"
+      });
+    });
   };
 
   if (loading) {
