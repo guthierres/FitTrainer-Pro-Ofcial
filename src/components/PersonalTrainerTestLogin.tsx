@@ -66,17 +66,17 @@ const PersonalTrainerTestLogin = ({ onClose }: PersonalTrainerTestLoginProps) =>
 
   const testLogin = (trainer: PersonalTrainer) => {
     const loginData = {
-      cpf: formatCPF(trainer.cpf),
-      birthDate: formatBirthDate(trainer.birth_date)
+      email: trainer.email || 'N/A',
+      password: 'temp123456'
     };
 
     toast({
       title: "Dados para teste de login",
-      description: `CPF: ${loginData.cpf} | Data: ${loginData.birthDate}`,
+      description: `Email: ${loginData.email} | Senha: ${loginData.password}`,
     });
 
     // Copy login data to clipboard
-    const loginText = `CPF: ${loginData.cpf}\nData de Nascimento: ${loginData.birthDate}`;
+    const loginText = `Email: ${loginData.email}\nSenha: ${loginData.password}`;
     navigator.clipboard.writeText(loginText);
     
     toast({
@@ -136,21 +136,21 @@ const PersonalTrainerTestLogin = ({ onClose }: PersonalTrainerTestLoginProps) =>
                         
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                           <div className="flex items-center gap-2">
+                            <User className="h-4 w-4 text-muted-foreground" />
+                            <span><strong>Email:</strong> {trainer.email || 'N/A'}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
                             <CreditCard className="h-4 w-4 text-muted-foreground" />
                             <span><strong>CPF:</strong> {formatCPF(trainer.cpf)}</span>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <Calendar className="h-4 w-4 text-muted-foreground" />
-                            <span><strong>Nascimento:</strong> {formatBirthDate(trainer.birth_date)}</span>
-                          </div>
                         </div>
                         
-                        {trainer.email && (
-                          <p className="text-sm"><strong>Email:</strong> {trainer.email}</p>
-                        )}
                         {trainer.cref && (
                           <p className="text-sm"><strong>CREF:</strong> {trainer.cref}</p>
                         )}
+                        <div className="text-xs text-muted-foreground">
+                          <strong>Senha padrão:</strong> temp123456
+                        </div>
                       </div>
                       
                       <Button 

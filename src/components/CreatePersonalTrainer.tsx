@@ -90,9 +90,39 @@ const CreatePersonalTrainer = ({ onClose, onSuccess }: CreatePersonalTrainerProp
       return;
     }
 
+    if (!formData.email) {
+      toast({
+        title: "Erro de validação",
+        description: "Email é obrigatório para criar conta de acesso.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
 
     try {
+      // Create user in Supabase Auth first
+      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+        email: formData.email,
+        password: 'temp123456', // Temporary password - trainer should change it
+        email_confirm: true,
+        user_metadata: {
+          name: formData.name,
+          role: 'personal_trainer'
+        }
+      });
+
+      if (authError) {
+        console.error("Auth creation error:", authError);
+        toast({
+          title: "Erro",
+          description: "Não foi possível criar conta de acesso. Verifique se o email já não está em uso.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       let dbBirthDate = null;
       if (formData.birth_date) {
         if (formData.birth_date.includes('/')) {
@@ -108,12 +138,13 @@ const CreatePersonalTrainer = ({ onClose, onSuccess }: CreatePersonalTrainerProp
       const trainerData = {
         name: formData.name,
         cpf: formData.cpf.replace(/\D/g, ""),
-        email: formData.email || null,
+        email: formData.email,
         phone: formData.phone || null,
         birth_date: dbBirthDate,
         cref: formData.cref || null,
         specializations: specializations.length > 0 ? specializations : null,
         active: true,
+        auth_user_id: authData.user.id,
       };
 
       const { error } = await supabase
@@ -121,6 +152,9 @@ const CreatePersonalTrainer = ({ onClose, onSuccess }: CreatePersonalTrainerProp
         .insert(trainerData);
 
       if (error) {
+        // If trainer creation fails, delete the auth user
+        await supabase.auth.admin.deleteUser(authData.user.id);
+        
         if (error.code === '23505' && error.details?.includes('cpf')) {
           toast({
             title: "Erro",
@@ -139,7 +173,7 @@ const CreatePersonalTrainer = ({ onClose, onSuccess }: CreatePersonalTrainerProp
 
       toast({
         title: "Sucesso!",
-        description: `Personal trainer ${formData.name} cadastrado com sucesso!`,
+        description: `Personal trainer ${formData.name} cadastrado com sucesso! Senha temporária: temp123456`,
       });
 
       onSuccess();
@@ -204,14 +238,18 @@ const CreatePersonalTrainer = ({ onClose, onSuccess }: CreatePersonalTrainerProp
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email">Email *</Label>
                   <Input
                     id="email"
                     type="email"
                     value={formData.email}
                     onChange={(e) => handleInputChange("email", e.target.value)}
                     placeholder="email@exemplo.com"
+                    required
                   />
+                  <p className="text-xs text-muted-foreground">
+                    Este email será usado para criar a conta de acesso
+                  </p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="phone">Telefone</Label>
@@ -273,6 +311,18 @@ const CreatePersonalTrainer = ({ onClose, onSuccess }: CreatePersonalTrainerProp
                 </div>
               )}
             </div>
+            
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <h4 className="font-medium text-blue-900 mb-2">Informações de Acesso</h4>
+              <p className="text-sm text-blue-700">
+                Uma conta será criada automaticamente com o email fornecido.
+                <br />
+                <strong>Senha temporária:</strong> temp123456
+                <br />
+                O personal trainer deve alterar a senha no primeiro acesso.
+              </p>
+            </div>
+            
             {/* Botões de Submissão */}
             <div className="flex gap-2 pt-4">
               <Button type="button" variant="outline" onClick={onClose} className="flex-1">
@@ -281,7 +331,7 @@ const CreatePersonalTrainer = ({ onClose, onSuccess }: CreatePersonalTrainerProp
               <Button
                 type="submit"
                 className="flex-1"
-                disabled={isLoading || !formData.name || !formData.cpf}
+                disabled={isLoading || !formData.name || !formData.cpf || !formData.email}
               >
                 {isLoading ? "Cadastrando..." : "Cadastrar Personal Trainer"}
               </Button>

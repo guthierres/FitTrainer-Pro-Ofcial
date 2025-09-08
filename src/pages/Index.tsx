@@ -195,8 +195,8 @@ const Index = () => {
               <div className="bg-white/10 p-4 rounded-lg">
                 <h5 className="font-semibold mb-2">👨‍💼 Personal Trainer Demo</h5>
                 <p className="text-sm opacity-90">
-                  <strong>CPF:</strong> 123.456.789-00<br/>
-                  <strong>Data Nasc:</strong> 01/01/1990
+                  <strong>Email:</strong> demo@fittrainer.com<br/>
+                  <strong>Senha:</strong> temp123456
                 </p>
               </div>
               <div className="bg-white/10 p-4 rounded-lg">

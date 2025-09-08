@@ -321,6 +321,7 @@ export type Database = {
       personal_trainers: {
         Row: {
           active: boolean
+          auth_user_id: string | null
           birth_date: string
           cpf: string
           created_at: string
@@ -334,6 +335,7 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          auth_user_id?: string | null
           birth_date: string
           cpf: string
           created_at?: string
@@ -347,6 +349,7 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          auth_user_id?: string | null
           birth_date?: string
           cpf?: string
           created_at?: string
@@ -421,33 +424,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      super_admins: {
-        Row: {
-          created_at: string
-          email: string
-          id: string
-          name: string
-          password_hash: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          email: string
-          id?: string
-          name?: string
-          password_hash: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          email?: string
-          id?: string
-          name?: string
-          password_hash?: string
-          updated_at?: string
-        }
-        Relationships: []
       }
       workout_exercises: {
         Row: {
@@ -544,6 +520,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "personal_trainers_auth_user_id_fkey"
+            columns: ["auth_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "workout_plans_personal_trainer_id_fkey"
             columns: ["personal_trainer_id"]

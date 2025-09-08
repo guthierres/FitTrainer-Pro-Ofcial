@@ -38,6 +38,7 @@ interface PersonalTrainer {
   specializations?: string[];
   active: boolean;
   created_at: string;
+  auth_user_id?: string;
   _count?: {
     students: number;
     workout_plans: number;
@@ -56,13 +57,13 @@ const SuperAdminLogin = ({ onLogin }: { onLogin: () => void }) => {
     setIsLoading(true);
 
     try {
-      const { data, error } = await supabase
-        .from("super_admins")
-        .select("*")
-        .eq("email", email)
-        .single();
+      // Authenticate with Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-      if (error || !data) {
+      if (authError || !authData.user) {
         toast({
           title: "Erro no login",
           description: "Email ou senha inválidos.",
@@ -71,20 +72,28 @@ const SuperAdminLogin = ({ onLogin }: { onLogin: () => void }) => {
         return;
       }
 
-      // Simple password verification (in production, use proper hashing)
-      if (email === "guthierresc@hotmail.com" && password === "Gutim@2028") {
-        localStorage.setItem("superAdmin", JSON.stringify(data));
+      // Check if user is super admin (you can add a custom claim or check email)
+      const isSuperAdmin = authData.user.email === "guthierresc@hotmail.com" || 
+                          authData.user.user_metadata?.role === "super_admin";
+      
+      if (isSuperAdmin) {
+        localStorage.setItem("superAdmin", JSON.stringify({
+          id: authData.user.id,
+          email: authData.user.email,
+          name: "Super Admin"
+        }));
         toast({
           title: "Login realizado com sucesso!",
-          description: `Bem-vindo, ${data.name}!`,
+          description: "Bem-vindo, Super Admin!",
         });
         onLogin();
       } else {
         toast({
           title: "Erro no login",
-          description: "Email ou senha inválidos.",
+          description: "Acesso não autorizado.",
           variant: "destructive",
         });
+        await supabase.auth.signOut();
       }
     } catch (error) {
       toast({
@@ -118,7 +127,7 @@ const SuperAdminLogin = ({ onLogin }: { onLogin: () => void }) => {
               <Input
                 id="email"
                 type="email"
-                placeholder="admin@example.com"
+                placeholder="guthierresc@hotmail.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -304,6 +313,7 @@ const SuperAdmin = () => {
   };
 
   const handleLogout = () => {
+    supabase.auth.signOut();
     localStorage.removeItem("superAdmin");
     toast({
       title: "Logout realizado",
@@ -438,6 +448,11 @@ const SuperAdmin = () => {
                           <Badge variant={trainer.active ? "default" : "secondary"}>
                             {trainer.active ? "Ativo" : "Inativo"}
                           </Badge>
+                          {trainer.auth_user_id && (
+                            <Badge variant="outline">
+                              Conta Criada
+                            </Badge>
+                          )}
                         </div>
                         
                         <div className="grid md:grid-cols-2 gap-4 text-sm">

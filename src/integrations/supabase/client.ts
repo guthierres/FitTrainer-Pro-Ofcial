@@ -19,5 +19,20 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
       'x-client-info': 'fittrainer-pro@1.0.0',
     },
   },
-}
-)
+});
+
+// Helper function to set student context for public access
+export const setStudentContext = async (studentNumber?: string, studentToken?: string) => {
+  if (studentNumber || studentToken) {
+    const claims = {
+      ...(studentNumber && { student_number: studentNumber }),
+      ...(studentToken && { student_token: studentToken })
+    };
+    
+    // Set custom headers for RLS policies
+    supabase.rest.headers = {
+      ...supabase.rest.headers,
+      'x-student-context': JSON.stringify(claims)
+    };
+  }
+};

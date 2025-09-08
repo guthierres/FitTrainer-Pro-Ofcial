@@ -117,12 +117,8 @@ export default function StudentDiet() {
 
   const fetchStudentData = async () => {
     try {
-      // First, try to set a simple context for debugging
-      try {
-        await supabase.rpc('set_student_context_by_number', { student_num: studentNumber });
-      } catch (contextError) {
-        console.warn("Context function not available, proceeding without context:", contextError);
-      }
+      // Set student context for RLS policies
+      await setStudentContext(studentNumber);
 
       // Fetch student data
       const { data: studentData, error: studentError } = await supabase
@@ -143,12 +139,8 @@ export default function StudentDiet() {
       setStudent(studentData);
       setTrainer(studentData.personal_trainers);
 
-      // Try to set student context with token
-      try {
-        await supabase.rpc('set_student_context_by_token', { token: studentData.unique_link_token });
-      } catch (contextError) {
-        console.warn("Could not set token context:", contextError);
-      }
+      // Update context with token
+      await setStudentContext(studentNumber, studentData.unique_link_token);
 
       // Fetch diet plan
       const { data: dietData, error: dietError } = await supabase

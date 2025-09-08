@@ -190,6 +190,7 @@ const Dashboard = () => {
   };
 
   const handleLogout = () => {
+    supabase.auth.signOut();
     localStorage.removeItem("trainer");
     toast({
       title: "Logout realizado",

@@ -9,73 +9,57 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 const Login = () => {
-  const [cpf, setCpf] = useState("");
-  const [birthDate, setBirthDate] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
-
-  const formatCPF = (value: string) => {
-    const numericValue = value.replace(/\D/g, "");
-    if (numericValue.length <= 11) {
-      const formatted = numericValue.replace(
-        /(\d{3})(\d{3})(\d{3})(\d{2})/,
-        "$1.$2.$3-$4"
-      );
-      return formatted;
-    }
-    return value;
-  };
-
-  const formatBirthDate = (value: string) => {
-    const numericValue = value.replace(/\D/g, "");
-    if (numericValue.length <= 8) {
-      const formatted = numericValue.replace(
-        /(\d{2})(\d{2})(\d{4})/,
-        "$1/$2/$3"
-      );
-      return formatted;
-    }
-    return value;
-  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      // Remove formatting from CPF for database query (store as numbers only)
-      const cleanCPF = cpf.replace(/\D/g, "");
-      
-      // Convert DD/MM/YYYY to YYYY-MM-DD for database query
-      const [day, month, year] = birthDate.split("/");
-      const dbBirthDate = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+      // Authenticate with Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-      console.log("Attempting login with:", { cleanCPF, dbBirthDate });
-
-      const { data, error } = await supabase
-        .from("personal_trainers")
-        .select("*")
-        .eq("cpf", cleanCPF)
-        .eq("birth_date", dbBirthDate)
-        .eq("active", true) // Only allow active trainers to login
-        .single();
-
-      if (error || !data) {
-        console.error("Login error:", error);
+      if (authError || !authData.user) {
+        console.error("Auth error:", authError);
         toast({
           title: "Erro no login",
-          description: "CPF ou data de nascimento inválidos, ou personal trainer inativo.",
+          description: "Email ou senha inválidos.",
           variant: "destructive",
         });
         return;
       }
 
+      // Get trainer data from database
+      const { data: trainerData, error: trainerError } = await supabase
+        .from("personal_trainers")
+        .select("*")
+        .eq("auth_user_id", authData.user.id)
+        .eq("active", true)
+        .single();
+
+      if (trainerError || !trainerData) {
+        console.error("Trainer data error:", trainerError);
+        toast({
+          title: "Erro no login",
+          description: "Personal trainer não encontrado ou inativo.",
+          variant: "destructive",
+        });
+        await supabase.auth.signOut();
+        return;
+      }
+
       // Store trainer info in localStorage
-      localStorage.setItem("trainer", JSON.stringify(data));
+      localStorage.setItem("trainer", JSON.stringify(trainerData));
       toast({
         title: "Login realizado com sucesso!",
-        description: `Bem-vindo, ${data.name}!`,
+        description: `Bem-vindo, ${trainerData.name}!`,
       });
       navigate("/dashboard");
     } catch (error) {
@@ -107,27 +91,25 @@ const Login = () => {
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="cpf">CPF</Label>
+              <Label htmlFor="email">Email</Label>
               <Input
-                id="cpf"
-                type="text"
-                placeholder="000.000.000-00"
-                value={cpf}
-                onChange={(e) => setCpf(formatCPF(e.target.value))}
-                maxLength={14}
+                id="email"
+                type="email"
+                placeholder="seu@email.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 className="touch-target"
                 required
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="birthDate">Data de Nascimento</Label>
+              <Label htmlFor="password">Senha</Label>
               <Input
-                id="birthDate"
-                type="text"
-                placeholder="DD/MM/AAAA"
-                value={birthDate}
-                onChange={(e) => setBirthDate(formatBirthDate(e.target.value))}
-                maxLength={10}
+                id="password"
+                type="password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 className="touch-target"
                 required
               />
@@ -135,7 +117,7 @@ const Login = () => {
             <Button
               type="submit"
               className="w-full touch-target h-12"
-              disabled={isLoading || !cpf || !birthDate}
+              disabled={isLoading || !email || !password}
             >
               {isLoading ? "Entrando..." : "Entrar"}
             </Button>

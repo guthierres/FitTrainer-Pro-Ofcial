@@ -99,12 +99,8 @@ const StudentWorkout = () => {
       
       console.log("Loading student data for student number:", studentNumber);
       
-      // First, try to set a simple context for debugging
-      try {
-        await supabase.rpc('set_student_context_by_number', { student_num: studentNumber });
-      } catch (contextError) {
-        console.warn("Context function not available, proceeding without context:", contextError);
-      }
+      // Set student context for RLS policies
+      await setStudentContext(studentNumber);
 
       // Busca o aluno pelo número
       const { data: studentData, error: studentError } = await supabase
@@ -129,12 +125,8 @@ const StudentWorkout = () => {
       console.log("Student found:", studentData);
       setStudent(studentData);
 
-      // Try to set student context with token
-      try {
-        await supabase.rpc('set_student_context_by_token', { token: studentData.unique_link_token });
-      } catch (contextError) {
-        console.warn("Could not set token context:", contextError);
-      }
+      // Update context with token
+      await setStudentContext(studentNumber, studentData.unique_link_token);
 
       // Busca o plano de treino ativo com as sessões e exercícios
       const { data: workoutData, error: workoutError } = await supabase
