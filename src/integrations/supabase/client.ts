@@ -29,10 +29,23 @@ export const setStudentContext = async (studentNumber?: string, studentToken?: s
       ...(studentToken && { student_token: studentToken })
     };
     
-    // Set custom headers for RLS policies
-    supabase.rest.headers = {
-      ...supabase.rest.headers,
-      'x-student-context': JSON.stringify(claims)
-    };
+    // Set JWT claims for RLS policies
+    await supabase.auth.setSession({
+      access_token: createCustomJWT(claims),
+      refresh_token: ''
+    });
   }
+};
+
+// Helper function to create a custom JWT for student context
+const createCustomJWT = (claims: any) => {
+  // Create a simple JWT-like token for RLS context
+  const header = btoa(JSON.stringify({ alg: 'none', typ: 'JWT' }));
+  const payload = btoa(JSON.stringify({ 
+    ...claims,
+    iss: 'fittrainer-pro',
+    aud: 'authenticated',
+    exp: Math.floor(Date.now() / 1000) + 3600 // 1 hour
+  }));
+  return `${header}.${payload}.`;
 };
