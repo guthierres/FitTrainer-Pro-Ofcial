@@ -102,78 +102,59 @@ const CreatePersonalTrainer = ({ onClose, onSuccess }: CreatePersonalTrainerProp
     setIsLoading(true);
 
     try {
-      // Create user in Supabase Auth first
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-        email: formData.email,
-        password: 'temp123456', // Temporary password - trainer should change it
-        email_confirm: true,
-        user_metadata: {
-          name: formData.name,
-          role: 'personal_trainer'
-        }
-      });
-
-      if (authError) {
-        console.error("Auth creation error:", authError);
+      // Get current user session for authorization
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
         toast({
           title: "Erro",
-          description: "Não foi possível criar conta de acesso. Verifique se o email já não está em uso.",
+          description: "Você precisa estar logado para criar um personal trainer.",
           variant: "destructive",
         });
         return;
       }
 
-      let dbBirthDate = null;
-      if (formData.birth_date) {
-        if (formData.birth_date.includes('/')) {
-          const [day, month, year] = formData.birth_date.split("/");
-          if (day && month && year) {
-            dbBirthDate = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
-          }
-        } else {
-          dbBirthDate = formData.birth_date;
-        }
-      }
-
-      const trainerData = {
+      // Prepare data for the edge function
+      const requestData = {
         name: formData.name,
         cpf: formData.cpf.replace(/\D/g, ""),
         email: formData.email,
         phone: formData.phone || null,
-        birth_date: dbBirthDate,
+        birth_date: formData.birth_date,
         cref: formData.cref || null,
-        specializations: specializations.length > 0 ? specializations : null,
-        active: true,
-        auth_user_id: authData.user.id,
+        specializations: specializations.length > 0 ? specializations : [],
       };
 
-      const { error } = await supabase
-        .from("personal_trainers")
-        .insert(trainerData);
+      // Call the edge function to create the trainer
+      const { data, error } = await supabase.functions.invoke('create-trainer', {
+        body: requestData,
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
 
       if (error) {
-        // If trainer creation fails, delete the auth user
-        await supabase.auth.admin.deleteUser(authData.user.id);
-        
-        if (error.code === '23505' && error.details?.includes('cpf')) {
-          toast({
-            title: "Erro",
-            description: "Já existe um personal trainer cadastrado com este CPF.",
-            variant: "destructive",
-          });
-        } else {
-          toast({
-            title: "Erro",
-            description: "Não foi possível cadastrar o personal trainer. Tente novamente.",
-            variant: "destructive",
-          });
-        }
+        console.error("Error creating trainer:", error);
+        toast({
+          title: "Erro",
+          description: error.message || "Não foi possível cadastrar o personal trainer.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (!data.success) {
+        toast({
+          title: "Erro",
+          description: data.error || "Não foi possível cadastrar o personal trainer.",
+          variant: "destructive",
+        });
         return;
       }
 
       toast({
         title: "Sucesso!",
-        description: `Personal trainer ${formData.name} cadastrado com sucesso! Senha temporária: temp123456`,
+        description: `Personal trainer ${formData.name} cadastrado com sucesso! Senha temporária: ${data.tempPassword}`,
       });
 
       onSuccess();
