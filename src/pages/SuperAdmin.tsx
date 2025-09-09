@@ -186,26 +186,75 @@ const SuperAdmin = () => {
 
   const loadTrainers = async () => {
     try {
+      console.log("Loading trainers for super admin...");
+      
+      // First verify we have proper authentication
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError || !user) {
+        console.error("Authentication error:", authError);
+        toast({
+          title: "Erro de autenticação",
+          description: "Faça login novamente.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      console.log("Authenticated user:", user.email);
+      
+      // Load trainers with statistics
       const { data, error } = await supabase
         .from("personal_trainers")
         .select(`
           *,
-          students!inner(count),
-          workout_plans!inner(count),
-          diet_plans!inner(count)
+          students(id, active),
+          workout_plans(id, active),
+          diet_plans(id, active)
         `)
         .order("created_at", { ascending: false });
 
-      if (!error && data) {
-        setTrainers(data);
+      if (error) {
+        console.error("Error loading trainers:", error);
+        toast({
+          title: "Erro",
+          description: `Erro ao carregar personal trainers: ${error.message}`,
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (data) {
+        console.log("Trainers loaded:", data.length);
+        
+        // Transform data to include counts
+        const trainersWithCounts = data.map(trainer => ({
+          ...trainer,
+          _count: {
+            students: trainer.students?.filter(s => s.active).length || 0,
+            workout_plans: trainer.workout_plans?.filter(w => w.active).length || 0,
+            diet_plans: trainer.diet_plans?.filter(d => d.active).length || 0,
+          }
+        }));
+        
+        setTrainers(trainersWithCounts);
+      } else {
+        console.log("No trainers found");
+        setTrainers([]);
       }
     } catch (error) {
       console.error("Error loading trainers:", error);
+      toast({
+        title: "Erro",
+        description: "Erro inesperado ao carregar personal trainers.",
+        variant: "destructive",
+      });
     }
   };
 
   const loadStats = async () => {
     try {
+      console.log("Loading system stats...");
+      
       const [trainersResult, studentsResult, workoutsResult, dietsResult] = await Promise.all([
         supabase.from("personal_trainers").select("id, active"),
         supabase.from("students").select("id, active"),
@@ -213,6 +262,13 @@ const SuperAdmin = () => {
         supabase.from("diet_plans").select("id, active")
       ]);
 
+      console.log("Stats results:", {
+        trainers: trainersResult.data?.length || 0,
+        students: studentsResult.data?.length || 0,
+        workouts: workoutsResult.data?.length || 0,
+        diets: dietsResult.data?.length || 0
+      });
+      
       setStats({
         totalTrainers: trainersResult.data?.length || 0,
         activeTrainers: trainersResult.data?.filter(t => t.active).length || 0,
@@ -222,17 +278,31 @@ const SuperAdmin = () => {
       });
     } catch (error) {
       console.error("Error loading stats:", error);
+      toast({
+        title: "Erro",
+        description: "Erro ao carregar estatísticas do sistema.",
+        variant: "destructive",
+      });
     }
   };
 
   const toggleTrainerStatus = async (trainerId: string, currentStatus: boolean) => {
     try {
+      console.log("Toggling trainer status:", trainerId, "from", currentStatus, "to", !currentStatus);
+      
       const { error } = await supabase
         .from("personal_trainers")
         .update({ active: !currentStatus })
         .eq("id", trainerId);
 
-      if (!error) {
+      if (error) {
+        console.error("Error toggling trainer status:", error);
+        toast({
+          title: "Erro",
+          description: `Erro ao atualizar status: ${error.message}`,
+          variant: "destructive",
+        });
+      } else {
         toast({
           title: "Status atualizado",
           description: `Personal trainer ${!currentStatus ? 'ativado' : 'desativado'} com sucesso.`,
@@ -241,6 +311,7 @@ const SuperAdmin = () => {
         loadStats();
       }
     } catch (error) {
+      console.error("Exception toggling trainer status:", error);
       toast({
         title: "Erro",
         description: "Erro ao atualizar status do personal trainer.",
@@ -459,12 +530,14 @@ const SuperAdmin = () => {
                           <div>
                             <p><strong>CPF:</strong> {trainer.cpf}</p>
                             <p><strong>Email:</strong> {trainer.email || 'N/A'}</p>
+                              <p><strong>Alunos:</strong> {trainer._count?.students || 0}</p>
                             <p><strong>Telefone:</strong> {trainer.phone || 'N/A'}</p>
                           </div>
                           <div>
                             <p><strong>CREF:</strong> {trainer.cref || 'N/A'}</p>
                             <p><strong>Data de Nascimento:</strong> {trainer.birth_date ? new Date(trainer.birth_date).toLocaleDateString('pt-BR') : 'N/A'}</p>
                             <p><strong>Especialidades:</strong> {trainer.specializations?.join(', ') || 'N/A'}</p>
+                              <p><strong>Treinos:</strong> {trainer._count?.workout_plans || 0} | <strong>Dietas:</strong> {trainer._count?.diet_plans || 0}</p>
                             <p><strong>Cadastrado em:</strong> {new Date(trainer.created_at).toLocaleDateString('pt-BR')}</p>
                           </div>
                         </div>
