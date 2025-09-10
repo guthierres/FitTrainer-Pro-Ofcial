@@ -512,7 +512,7 @@ export default function StudentDiet() {
       doc.setFont("helvetica", "normal");
       doc.text(`Sistema: FitTrainer-Pro | ${window.location.origin}/student/${studentNumber}/diet`, margin, y + 10);
       doc.text(`Gerado em: ${new Date().toLocaleString("pt-BR")}`, margin, y + 18);
-      doc.text(`Aluno: ${student.student_number} | Personal: ${trainer?.name || 'N/A'}`, margin, y + 26);
+      doc.text(`Aluno: ${student.student_number || 'N/A'} | Personal: ${trainer?.name || 'N/A'}`, margin, y + 26);
 
       // Save PDF
       const fileName = `FitTrainer-Pro_Dieta_${student.name.replace(/\s+/g, '_')}_${new Date().toLocaleDateString("pt-BR").replace(/\//g, "-")}.pdf`;
