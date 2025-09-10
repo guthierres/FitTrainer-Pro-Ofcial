@@ -145,7 +145,7 @@ const StudentWorkout = () => {
             description,
             personal_trainer:personal_trainers(name, cref),
             workout_sessions(
-            exercise:exercises(
+              id,
               name,
               description,
               day_of_week,
@@ -160,12 +160,13 @@ const StudentWorkout = () => {
                 order_index,
                 exercises(
                   name,
+                  description,
+                  instructions,
                   muscle_groups,
                   equipment,
-                  instructions,
                   exercise_categories(name, emoji)
                 )
-              category:exercise_categories(name, emoji)
+              )
             )
           `
         )
@@ -205,8 +206,26 @@ const StudentWorkout = () => {
         session.workout_exercises.forEach((exercise: any) => {
           exercise.isCompleted = completedExerciseIds.has(exercise.id);
           // Garantir que a estrutura do exercício está correta
-          if (exercise.exercise) {
-            exercise.exercise.category = exercise.exercise.category || { name: 'Geral', emoji: '💪' };
+          if (exercise.exercises) {
+            // Criar estrutura de categoria a partir dos dados do Supabase
+            exercise.exercise = {
+              name: exercise.exercises.name || 'Exercício não identificado',
+              description: exercise.exercises.description,
+              instructions: exercise.exercises.instructions,
+              muscle_groups: exercise.exercises.muscle_groups || [],
+              equipment: exercise.exercises.equipment || [],
+              category: exercise.exercises.exercise_categories || { name: 'Geral', emoji: '💪' }
+            };
+          } else {
+            // Fallback completo se não há dados do exercício
+            exercise.exercise = {
+              name: 'Exercício não identificado',
+              description: null,
+              instructions: null,
+              muscle_groups: [],
+              equipment: [],
+              category: { name: 'Geral', emoji: '💪' }
+            };
           }
         });
       });
