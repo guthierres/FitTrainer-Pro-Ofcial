@@ -310,200 +310,128 @@ export default function StudentDiet() {
     import('jspdf').then(({ jsPDF }) => {
       const doc = new jsPDF();
       
-      // Configure colors and fonts
-      const primaryColor = [14, 165, 233]; // Blue
-      const secondaryColor = [100, 116, 139]; // Gray
-      const accentColor = [168, 85, 247]; // Purple for diet
+      // Configure font
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(16);
       
       let y = 20;
-      const lineHeight = 8;
+      const lineHeight = 7;
       const pageWidth = doc.internal.pageSize.getWidth();
-      const pageHeight = doc.internal.pageSize.getHeight();
       const margin = 20;
-      const contentWidth = pageWidth - (margin * 2);
 
-      // Header background
-      doc.setFillColor(...accentColor);
-      doc.rect(0, 0, pageWidth, 50, 'F');
+      // Header
+      doc.setFontSize(18);
+      doc.text("PLANO ALIMENTAR", pageWidth / 2, y, { align: "center" });
+      y += lineHeight * 2;
       
-      // Logo area
-      doc.setFillColor(255, 255, 255);
-      doc.circle(30, 25, 12, 'F');
-      doc.setTextColor(...accentColor);
-      doc.setFontSize(16);
-      doc.setFont("helvetica", "bold");
-      doc.text("🍎", 30, 30, { align: "center" });
-      
-      // Title
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(24);
-      doc.setFont("helvetica", "bold");
-      doc.text("FITTRAINER-PRO", 50, 25);
-      doc.setFontSize(12);
-      doc.setFont("helvetica", "normal");
-      doc.text("Plano Alimentar Personalizado", 50, 35);
-      
-      y = 65;
-      
-      // Reset text color
-      doc.setTextColor(0, 0, 0);
-
-      // Student info card
-      doc.setFillColor(248, 250, 252);
-      doc.roundedRect(margin, y, contentWidth, 35, 5, 5, 'F');
-      doc.setDrawColor(...secondaryColor);
-      doc.roundedRect(margin, y, contentWidth, 35, 5, 5, 'S');
-      
-      y += 10;
-      doc.setFontSize(14);
-      doc.setFont("helvetica", "bold");
-      doc.text("INFORMAÇÕES DO ALUNO", margin + 5, y);
-      
-      y += 8;
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "normal");
-      doc.text(`Nome: ${student.name}`, margin + 5, y);
-      doc.text(`Data: ${new Date().toLocaleDateString("pt-BR")}`, pageWidth - margin - 5, y, { align: "right" });
-      
-      y += 6;
-      doc.text(`Número: ${student.student_number}`, margin + 5, y);
       if (dietPlan) {
-        doc.text(`Plano: ${dietPlan.name}`, pageWidth - margin - 5, y, { align: "right" });
+        doc.setFontSize(14);
+        doc.text(dietPlan.name, pageWidth / 2, y, { align: "center" });
+        y += lineHeight * 2;
       }
-      
-      y += 6;
+
+      // Trainer and student info
+      doc.setFontSize(10);
       if (trainer) {
-        doc.text(`Personal: ${trainer.name}`, margin + 5, y);
+        doc.text(`Personal Trainer: ${trainer.name}`, margin, y);
+        y += lineHeight;
         if (trainer.cref) {
-          doc.text(`CREF: ${trainer.cref}`, pageWidth - margin - 5, y, { align: "right" });
+          doc.text(`CREF: ${trainer.cref}`, margin, y);
+          y += lineHeight;
         }
       }
       
-      y += 20;
+      doc.text(`Aluno: ${student.name}`, margin, y);
+      y += lineHeight;
+      doc.text(`Número: ${student.student_number}`, margin, y);
+      y += lineHeight;
+      doc.text(`Data: ${new Date().toLocaleDateString("pt-BR")}`, margin, y);
+      y += lineHeight * 2;
 
       // Diet goals if available
       if (dietPlan && (dietPlan.daily_calories || dietPlan.daily_protein || dietPlan.daily_carbs || dietPlan.daily_fat)) {
-        // Goals card
-        doc.setFillColor(254, 249, 195);
-        doc.roundedRect(margin, y, contentWidth, 25, 5, 5, 'F');
-        doc.setDrawColor(251, 191, 36);
-        doc.roundedRect(margin, y, contentWidth, 25, 5, 5, 'S');
-        
-        y += 8;
         doc.setFontSize(12);
-        doc.setFont("helvetica", "bold");
-        doc.setTextColor(146, 64, 14);
-        doc.text("🎯 METAS DIÁRIAS", margin + 5, y);
+        doc.text("METAS DIÁRIAS:", margin, y);
+        y += lineHeight;
         
-        y += 8;
-        doc.setFontSize(9);
-        doc.setFont("helvetica", "normal");
-        doc.setTextColor(0, 0, 0);
-        
-        let goalsText = "";
+        doc.setFontSize(10);
         if (dietPlan.daily_calories) {
-          goalsText += `Calorias: ${dietPlan.daily_calories} kcal  `;
+          doc.text(`Calorias: ${dietPlan.daily_calories} kcal`, margin, y);
+          y += lineHeight;
         }
         if (dietPlan.daily_protein) {
-          goalsText += `Proteína: ${dietPlan.daily_protein}g  `;
+          doc.text(`Proteína: ${dietPlan.daily_protein}g`, margin, y);
+          y += lineHeight;
         }
         if (dietPlan.daily_carbs) {
-          goalsText += `Carboidratos: ${dietPlan.daily_carbs}g  `;
+          doc.text(`Carboidratos: ${dietPlan.daily_carbs}g`, margin, y);
+          y += lineHeight;
         }
         if (dietPlan.daily_fat) {
-          goalsText += `Gordura: ${dietPlan.daily_fat}g`;
+          doc.text(`Gordura: ${dietPlan.daily_fat}g`, margin, y);
+          y += lineHeight;
         }
-        
-        doc.text(goalsText, margin + 5, y);
-        y += 20;
+        y += lineHeight;
       }
 
       // Meals
       if (meals.length > 0) {
-        // Meals title
-        doc.setFillColor(...accentColor);
-        doc.rect(margin, y, contentWidth, 12, 'F');
-        doc.setTextColor(255, 255, 255);
         doc.setFontSize(12);
-        doc.setFont("helvetica", "bold");
-        doc.text("🍽️ REFEIÇÕES DO DIA", margin + 5, y + 8);
-        
-        y += 20;
-        doc.setTextColor(0, 0, 0);
+        doc.text("REFEIÇÕES:", margin, y);
+        y += lineHeight * 1.5;
         
         meals.forEach((meal, mealIndex) => {
           // Check if we need a new page
-          if (y > pageHeight - 80) {
+          if (y > 250) {
             doc.addPage();
             y = 20;
           }
           
-          // Meal card
-          const mealCardHeight = 15 + (meal.meal_foods.length * 6);
-          doc.setFillColor(252, 252, 252);
-          doc.roundedRect(margin, y, contentWidth, mealCardHeight, 3, 3, 'F');
-          doc.setDrawColor(229, 231, 235);
-          doc.roundedRect(margin, y, contentWidth, mealCardHeight, 3, 3, 'S');
-          
-          // Meal header
-          doc.setFillColor(...accentColor);
-          doc.roundedRect(margin + 2, y + 2, contentWidth - 4, 10, 2, 2, 'F');
-          doc.setTextColor(255, 255, 255);
-          doc.setFontSize(10);
-          doc.setFont("helvetica", "bold");
-          doc.text(`${mealIndex + 1}. ${meal.name}`, margin + 5, y + 8);
-          
+          doc.setFontSize(11);
+          doc.text(`${mealIndex + 1}. ${meal.name}`, margin, y);
           if (meal.time_of_day) {
-            doc.text(`🕐 ${meal.time_of_day}`, pageWidth - margin - 5, y + 8, { align: "right" });
+            doc.text(`${meal.time_of_day}`, pageWidth - margin, y, { align: "right" });
           }
+          y += lineHeight;
           
-          y += 15;
-          doc.setTextColor(0, 0, 0);
-          doc.setFontSize(8);
-          doc.setFont("helvetica", "normal");
-          
+          doc.setFontSize(9);
           meal.meal_foods.forEach((food) => {
-            doc.text(`• ${food.quantity}${food.unit} ${food.food_name}`, margin + 8, y);
+            doc.text(`   • ${food.quantity}${food.unit} ${food.food_name}`, margin + 5, y);
             if (food.calories) {
-              doc.text(`${food.calories} kcal`, pageWidth - margin - 5, y, { align: "right" });
+              doc.text(`${food.calories} kcal`, pageWidth - margin, y, { align: "right" });
             }
-            y += 5;
+            y += lineHeight * 0.8;
             
             if (food.protein || food.carbs || food.fat) {
-              let macros = "    ";
+              let macros = "     ";
               if (food.protein) macros += `P: ${food.protein}g `;
               if (food.carbs) macros += `C: ${food.carbs}g `;
               if (food.fat) macros += `G: ${food.fat}g`;
-              doc.setTextColor(...secondaryColor);
-              doc.text(macros, margin + 12, y);
-              doc.setTextColor(0, 0, 0);
-              y += 4;
+              doc.text(macros, margin + 5, y);
+              y += lineHeight * 0.8;
+            }
+            
+            if (food.notes) {
+              doc.text(`     Obs: ${food.notes}`, margin + 5, y);
+              y += lineHeight * 0.8;
             }
           });
           
-          y += 8;
+          y += lineHeight / 2;
         });
       }
 
       // Footer
-      y = pageHeight - 30;
-      doc.setFillColor(...accentColor);
-      doc.rect(0, y, pageWidth, 30, 'F');
-      
-      doc.setTextColor(255, 255, 255);
+      y += lineHeight;
       doc.setFontSize(8);
-      doc.setFont("helvetica", "normal");
-      doc.text(`Sistema: FitTrainer-Pro | ${window.location.origin}/student/${studentNumber}/diet`, margin, y + 10);
-      doc.text(`Gerado em: ${new Date().toLocaleString("pt-BR")}`, margin, y + 18);
-      doc.text(`Aluno: ${student.student_number} | Personal: ${trainer?.name || 'N/A'}`, margin, y + 26);
+      doc.text(`Sistema: FitTrainer-Pro | Gerado em: ${new Date().toLocaleString("pt-BR")}`, margin, y);
 
       // Save PDF
-      const fileName = `FitTrainer-Pro_Dieta_${student.name.replace(/\s+/g, '_')}_${new Date().toLocaleDateString("pt-BR").replace(/\//g, "-")}.pdf`;
-      doc.save(fileName);
+      doc.save(`dieta-${student.student_number}-${student.name}-${new Date().toLocaleDateString("pt-BR").replace(/\//g, "-")}.pdf`);
       
       toast({
-        title: "📄 Dieta exportada!",
-        description: "Arquivo PDF profissional gerado com sucesso.",
+        title: "Dieta exportada!",
+        description: "Arquivo PDF gerado com sucesso.",
       });
     }).catch(() => {
       toast({

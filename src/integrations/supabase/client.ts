@@ -24,55 +24,28 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
 // Helper function to set student context for public access
 export const setStudentContext = async (studentNumber?: string, studentToken?: string) => {
   if (studentNumber || studentToken) {
-    try {
-      const claims = {
-        ...(studentNumber && { student_number: studentNumber }),
-        ...(studentToken && { student_token: studentToken }),
-        iss: 'fittrainer-pro',
-        aud: 'anon',
-        role: 'anon',
-        exp: Math.floor(Date.now() / 1000) + 3600
-      };
-      
-      console.log('Setting student context with claims:', claims);
-      
-      // Set the custom claims in the request context
-      const customToken = createCustomJWT(claims);
-      
-      // Update the client headers to include the custom claims
-      supabase.rest.headers = {
-        ...supabase.rest.headers,
-        'Authorization': `Bearer ${customToken}`,
-      };
-      
-      console.log('Student context set successfully');
-    } catch (error) {
-      console.error('Error setting student context:', error);
-    }
+    const claims = {
+      ...(studentNumber && { student_number: studentNumber }),
+      ...(studentToken && { student_token: studentToken })
+    };
+    
+    // Set JWT claims for RLS policies
+    await supabase.auth.setSession({
+      access_token: createCustomJWT(claims),
+      refresh_token: ''
+    });
   }
 };
 
-// Enhanced helper function to create a custom JWT for student context
+// Helper function to create a custom JWT for student context
 const createCustomJWT = (claims: any) => {
-  try {
-    // Create a proper JWT structure for RLS context
-    const header = {
-      alg: 'HS256',
-      typ: 'JWT'
-    };
-    
-    const payload = {
-      ...claims,
-      iat: Math.floor(Date.now() / 1000),
-      exp: Math.floor(Date.now() / 1000) + 3600
-    };
-    
-    const encodedHeader = btoa(JSON.stringify(header)).replace(/=/g, '');
-    const encodedPayload = btoa(JSON.stringify(payload)).replace(/=/g, '');
-    
-    return `${encodedHeader}.${encodedPayload}.signature`;
-  } catch (error) {
-    console.error('Error creating custom JWT:', error);
-    return '';
-  }
+  // Create a simple JWT-like token for RLS context
+  const header = btoa(JSON.stringify({ alg: 'none', typ: 'JWT' }));
+  const payload = btoa(JSON.stringify({ 
+    ...claims,
+    iss: 'fittrainer-pro',
+    aud: 'authenticated',
+    exp: Math.floor(Date.now() / 1000) + 3600 // 1 hour
+  }));
+  return `${header}.${payload}.`;
 };
