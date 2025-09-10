@@ -22,7 +22,8 @@ import {
   Edit,
   Dumbbell,
   Book,
-  User
+  User,
+  Trash2
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -391,6 +392,42 @@ const SuperAdmin = () => {
     loadStats();
   };
 
+  const handleDeleteTrainer = async (trainerId: string, trainerName: string) => {
+    if (!confirm(`Tem certeza que deseja excluir permanentemente o personal trainer "${trainerName}"? Esta ação não pode ser desfeita e removerá todos os dados associados.`)) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from("personal_trainers")
+        .delete()
+        .eq("id", trainerId);
+
+      if (error) {
+        console.error("Error deleting trainer:", error);
+        toast({
+          title: "Erro",
+          description: `Erro ao excluir personal trainer: ${error.message}`,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Personal trainer excluído",
+          description: `${trainerName} foi excluído permanentemente do sistema.`,
+        });
+        loadTrainers();
+        loadStats();
+      }
+    } catch (error) {
+      console.error("Exception deleting trainer:", error);
+      toast({
+        title: "Erro",
+        description: "Erro inesperado ao excluir personal trainer.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const openEditDialog = (trainer: PersonalTrainer) => {
     setSelectedTrainer(trainer);
     setIsEditDialogOpen(true);
@@ -558,14 +595,24 @@ const SuperAdmin = () => {
                       </div>
                       
                       <div className="flex items-center gap-4">
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => openEditDialog(trainer)}
-                        >
-                          <Edit className="h-4 w-4 mr-2" />
-                          Editar
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => openEditDialog(trainer)}
+                          >
+                            <Edit className="h-4 w-4 mr-2" />
+                            Editar
+                          </Button>
+                          <Button 
+                            variant="destructive" 
+                            size="sm"
+                            onClick={() => handleDeleteTrainer(trainer.id, trainer.name)}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Excluir
+                          </Button>
+                        </div>
                         {trainer.active ? (
                           <UserX className="h-5 w-5 text-destructive" />
                         ) : (
