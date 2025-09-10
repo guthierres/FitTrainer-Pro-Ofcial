@@ -96,16 +96,12 @@ const StudentWorkout = () => {
   const loadStudentData = async () => {
     try {
       setIsLoading(true);
-
       console.log("Loading student data for student number:", studentNumber);
-
-      // Set student context for RLS policies
-      await setStudentContext(studentNumber);
 
       // Busca o aluno pelo número
       const { data: studentData, error: studentError } = await supabase
         .from("students")
-        .select("*")
+        .select("id, name, student_number, unique_link_token, personal_trainer_id")
         .eq("student_number", studentNumber)
         .eq("active", true)
         .single();
@@ -113,20 +109,21 @@ const StudentWorkout = () => {
       console.log("Student query by number result:", { studentData, studentError });
 
       if (studentError || !studentData) {
-        console.error("Student not found by number:", studentError);
+        console.error("Student not found or inactive:", studentError);
         toast({
           title: "Erro",
           description: "Número de estudante inválido ou estudante inativo.",
           variant: "destructive",
         });
+        setIsLoading(false);
         return;
       }
 
-      console.log("Student found:", studentData);
-      setStudent(studentData);
+      // Define o contexto do estudante com o token antes de qualquer outra consulta
+      await setStudentContext(studentData.student_number, studentData.unique_link_token);
 
-      // Update context with token
-      await setStudentContext(studentNumber, studentData.unique_link_token);
+      console.log("Student found and context set:", studentData);
+      setStudent(studentData);
 
       // Busca o plano de treino ativo com as sessões e exercícios
       const { data: workoutData, error: workoutError } = await supabase
