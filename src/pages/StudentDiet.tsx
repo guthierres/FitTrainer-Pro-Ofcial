@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { setStudentContext } from '@/integrations/supabase/client';
+import { setStudentContext, verifyStudentAccess } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -117,11 +117,22 @@ export default function StudentDiet() {
 
   const fetchStudentData = async () => {
     try {
-      // Set student context for RLS policies
-      await setStudentContext(studentNumber);
+      // Verify and set student context
+      const verification = await verifyStudentAccess(studentNumber);
+      if (!verification.success) {
+        console.error("Student verification failed:", verification.error);
+        toast({
+          title: "Erro",
+          description: verification.error || "Número de estudante inválido.",
+          variant: "destructive",
+        });
+        return;
+      }
 
-      // Fetch student data
-      const { data: studentData, error: studentError } = await supabase
+      const studentData = verification.student;
+      
+      // Fetch complete student data with trainer info
+      const { data: completeStudentData, error: completeError } = await supabase
         .from('students')
         .select(`
           *,
@@ -129,18 +140,15 @@ export default function StudentDiet() {
             id, name, email, phone, cref
           )
         `)
-        .eq('student_number', studentNumber)
-        .eq('active', true)
+        .eq('id', studentData.id)
         .single();
 
-      if (studentError) throw studentError;
-      if (!studentData) throw new Error('Student not found');
+      if (completeError) throw completeError;
+      if (!completeStudentData) throw new Error('Complete student data not found');
 
-      setStudent(studentData);
-      setTrainer(studentData.personal_trainers);
-
-      // Update context with token
-      await setStudentContext(studentNumber, studentData.unique_link_token);
+      setStudent(completeStudentData);
+      setTrainer(completeStudentData.personal_trainers);
+      console.log("Student and trainer data loaded:", completeStudentData);
 
       // Fetch diet plan
       const { data: dietData, error: dietError } = await supabase
@@ -152,7 +160,7 @@ export default function StudentDiet() {
             meal_foods (*)
           )
         `)
-        .eq('student_id', studentData.id)
+        .eq('student_id', completeStudentData.id)
         .eq('active', true)
         .single();
 
@@ -176,7 +184,7 @@ export default function StudentDiet() {
             )
           )
         `)
-        .eq('student_id', studentData.id)
+        .eq('student_id', completeStudentData.id)
         .eq('active', true)
         .single();
 
@@ -189,7 +197,7 @@ export default function StudentDiet() {
       const { data: mealCompletions } = await supabase
         .from('meal_completions')
         .select('meal_id')
-        .eq('student_id', studentData.id)
+        .eq('student_id', completeStudentData.id)
         .gte('completed_at', `${today}T00:00:00`)
         .lt('completed_at', `${today}T23:59:59`);
 
@@ -201,7 +209,7 @@ export default function StudentDiet() {
       const { data: exerciseCompletions } = await supabase
         .from('exercise_completions')
         .select('workout_exercise_id')
-        .eq('student_id', studentData.id)
+        .eq('student_id', completeStudentData.id)
         .gte('completed_at', `${today}T00:00:00`)
         .lt('completed_at', `${today}T23:59:59`);
 
