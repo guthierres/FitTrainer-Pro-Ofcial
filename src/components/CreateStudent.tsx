@@ -70,6 +70,41 @@ const CreateStudent = ({ trainerId, onClose, onSuccess }: CreateStudentProps) =>
     try {
       console.log("Creating student for trainer:", trainerId);
       
+      // Verificar se o trainer existe e está ativo antes de tentar criar o aluno
+      const { data: trainerVerification, error: trainerError } = await supabase
+        .from("personal_trainers")
+        .select("id, name, active, auth_user_id")
+        .eq("id", trainerId)
+        .eq("active", true)
+        .single();
+
+      if (trainerError || !trainerVerification) {
+        console.error("Trainer verification failed:", trainerError);
+        toast({
+          title: "Erro",
+          description: "Personal trainer não encontrado ou inativo. Faça login novamente.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Verificar se o auth_user_id corresponde ao usuário atual
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || trainerVerification.auth_user_id !== user.id) {
+        console.error("Auth user mismatch:", { 
+          currentUser: user?.id, 
+          trainerAuthId: trainerVerification.auth_user_id 
+        });
+        toast({
+          title: "Erro",
+          description: "Sessão inválida. Faça login novamente.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      console.log("Trainer verified successfully:", trainerVerification);
+      
       // Convert DD/MM/YYYY to YYYY-MM-DD if birth_date is provided
       let dbBirthDate = null;
       if (formData.birth_date) {
@@ -112,25 +147,6 @@ const CreateStudent = ({ trainerId, onClose, onSuccess }: CreateStudentProps) =>
 
       console.log("Attempting to create student with data:", studentData);
 
-      // Test connection first
-      const { data: testData, error: testError } = await supabase
-        .from("personal_trainers")
-        .select("id, name")
-        .eq("id", trainerId)
-        .single();
-
-      if (testError) {
-        console.error("Trainer verification failed:", testError);
-        toast({
-          title: "Erro",
-          description: "Personal trainer não encontrado. Faça login novamente.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      console.log("Trainer verified:", testData);
-
       const { data, error } = await supabase
         .from("students")
         .insert(studentData)
@@ -144,9 +160,16 @@ const CreateStudent = ({ trainerId, onClose, onSuccess }: CreateStudentProps) =>
           hint: error.hint
         });
         
+        let errorMessage = "Erro ao cadastrar aluno.";
+        if (error.code === '23503') {
+          errorMessage = "Personal trainer não encontrado. Verifique sua sessão.";
+        } else if (error.code === '23505') {
+          errorMessage = "Já existe um aluno com estes dados.";
+        }
+        
         toast({
           title: "Erro",
-          description: `Erro ${error.code}: ${error.message}`,
+          description: errorMessage,
           variant: "destructive",
         });
         return;
