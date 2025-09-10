@@ -30,67 +30,119 @@ export const setStudentContext = async (studentNumber?: string, studentToken?: s
       // Clear any existing auth session for public access
       await supabase.auth.signOut();
       
-      const claims = {
-        ...(studentNumber && { student_number: studentNumber }),
-        ...(studentToken && { student_token: studentToken }),
-        iss: 'fittrainer-pro',
-        aud: 'anon',
-        role: 'anon',
-        exp: Math.floor(Date.now() / 1000) + 7200, // 2 hours
-        iat: Math.floor(Date.now() / 1000)
-      };
+      // Use multiple approaches to ensure context is set
+      const promises = [];
       
-      console.log('Setting student context with claims:', claims);
+      if (studentNumber) {
+        promises.push(
+          supabase.rpc('set_config', {
+            setting_name: 'app.current_student_number',
+            setting_value: studentNumber,
+            is_local: true
+          })
+        );
+      }
       
-      // Create a more robust JWT token
-      const customToken = btoa(JSON.stringify(claims));
+      if (studentToken) {
+        promises.push(
+          supabase.rpc('set_config', {
+            setting_name: 'app.current_student_token',
+            setting_value: studentToken,
+            is_local: true
+          })
+        );
+      }
       
-      // Set custom headers for RLS context
-      const headers = {
-        'x-student-context': customToken,
-        'x-student-number': studentNumber || '',
-        'x-student-token': studentToken || ''
-      };
+      // Set context using our custom function
+      const contextData = JSON.stringify({
+        student_number: studentNumber || null,
+        student_token: studentToken || null
+      });
       
-      // Update supabase client headers
-      Object.assign(supabase.rest.headers, headers);
+      promises.push(
+        supabase.rpc('set_config', {
+          setting_name: 'app.student_context',
+          setting_value: contextData,
+          is_local: true
+        })
+      );
       
-      console.log('Student context set successfully');
+      await Promise.allSettled(promises);
+      console.log('Contexto do aluno definido com sucesso:', { studentNumber, studentToken });
+      
     } catch (error) {
-      console.error('Error setting student context:', error);
+      console.error('Erro ao definir contexto do aluno:', error);
     }
   } else {
     // Clear student context
-    delete supabase.rest.headers['x-student-context'];
-    delete supabase.rest.headers['x-student-number'];
-    delete supabase.rest.headers['x-student-token'];
+    try {
+      await Promise.allSettled([
+        supabase.rpc('set_config', {
+          setting_name: 'app.current_student_number',
+          setting_value: '',
+          is_local: true
+        }),
+        supabase.rpc('set_config', {
+          setting_name: 'app.current_student_token',
+          setting_value: '',
+          is_local: true
+        }),
+        supabase.rpc('set_config', {
+          setting_name: 'app.student_context',
+          setting_value: '{}',
+          is_local: true
+        })
+      ]);
+    } catch (error) {
+      console.warn('Erro ao limpar contexto do aluno:', error);
+    }
   }
 };
 
 // Helper function to verify student access
 export const verifyStudentAccess = async (studentNumber: string) => {
   try {
-    console.log('Verifying student access for:', studentNumber);
+    console.log('Verificando acesso do aluno para número:', studentNumber);
     
-    // Set context first
-    await setStudentContext(studentNumber);
+    if (!studentNumber || studentNumber.trim() === '') {
+      return { 
+        success: false, 
+        error: 'Número do aluno é obrigatório' 
+      };
+    }
     
-    // Try to fetch student data
+    // First, try to find the student without context to verify existence
     const { data: studentData, error } = await supabase
       .from('students')
-      .select('id, name, unique_link_token, active')
+      .select('id, name, unique_link_token, active, personal_trainer_id')
       .eq('student_number', studentNumber)
-      .eq('active', true)
       .single();
 
     if (error || !studentData) {
-      console.error('Student verification failed:', error);
-      return { success: false, error: 'Student not found or inactive' };
+      console.error('Falha na verificação do aluno:', error);
+      return { 
+        success: false, 
+        error: 'Aluno não encontrado. Verifique o número do aluno.' 
+      };
     }
 
-    console.log('Student verified:', studentData);
+    if (!studentData.active) {
+      return { 
+        success: false, 
+        error: 'Este aluno está inativo. Entre em contato com seu personal trainer.' 
+      };
+    }
+
+    if (!studentData.unique_link_token) {
+      return { 
+        success: false, 
+        error: 'Link do aluno inválido. Entre em contato com seu personal trainer.' 
+      };
+    }
+
+    console.log('Aluno verificado:', studentData);
     
-    // Update context with token
+    // Set context with both student number and token
     await setStudentContext(studentNumber, studentData.unique_link_token);
     
     return { 
@@ -98,7 +150,10 @@ export const verifyStudentAccess = async (studentNumber: string) => {
       student: studentData 
     };
   } catch (error) {
-    console.error('Error verifying student access:', error);
-    return { success: false, error: 'Verification failed' };
+    console.error('Erro ao verificar acesso do aluno:', error);
+    return { 
+      success: false, 
+      error: 'Erro interno. Tente novamente ou entre em contato com seu personal trainer.' 
+    };
   }
 };

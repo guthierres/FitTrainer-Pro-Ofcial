@@ -123,7 +123,7 @@ export default function StudentDiet() {
         console.error("Student verification failed:", verification.error);
         toast({
           title: "Erro",
-          description: verification.error || "Número de estudante inválido.",
+          description: verification.error || "Número do aluno inválido.",
           variant: "destructive",
         });
         return;
@@ -144,11 +144,11 @@ export default function StudentDiet() {
         .single();
 
       if (completeError) throw completeError;
-      if (!completeStudentData) throw new Error('Complete student data not found');
+      if (!completeStudentData) throw new Error('Dados completos do aluno não encontrados');
 
       setStudent(completeStudentData);
       setTrainer(completeStudentData.personal_trainers);
-      console.log("Student and trainer data loaded:", completeStudentData);
+      console.log("Dados do aluno e personal trainer carregados:", completeStudentData);
 
       // Fetch diet plan
       const { data: dietData, error: dietError } = await supabase
@@ -218,7 +218,7 @@ export default function StudentDiet() {
       }
 
     } catch (error) {
-      console.error('Error fetching student data:', error);
+      console.error('Erro ao buscar dados do aluno:', error);
       toast({
         title: "Erro",
         description: "Erro ao carregar dados do aluno",
@@ -523,11 +523,54 @@ export default function StudentDiet() {
   };
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">Carregando...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p>Carregando dados do aluno...</p>
+        </div>
+      </div>
+    );
   }
 
   if (!student) {
-    return <div className="min-h-screen flex items-center justify-center">Aluno não encontrado</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted/30">
+        <Card className="max-w-md mx-4 shadow-lg">
+          <CardContent className="text-center p-8 space-y-4">
+            <div className="w-16 h-16 mx-auto bg-muted rounded-full flex items-center justify-center">
+              <User className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-lg font-semibold">Aluno não encontrado</h3>
+              <p className="text-muted-foreground text-sm">
+                Não foi possível encontrar os dados deste aluno ou o link pode estar inválido.
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Entre em contato com seu personal trainer para verificar o link.
+              </p>
+            </div>
+            <div className="flex flex-col gap-2 pt-4">
+              <Button
+                onClick={() => window.history.back()}
+                variant="default"
+                className="w-full"
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Voltar
+              </Button>
+              <Button
+                onClick={() => (window.location.href = "/")}
+                variant="outline"
+                className="w-full"
+              >
+                Ir para Início
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   const dayNames = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];

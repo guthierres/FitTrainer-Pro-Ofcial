@@ -82,7 +82,7 @@ const CreateStudent = ({ trainerId, onClose, onSuccess }: CreateStudentProps) =>
         console.error("Trainer verification failed:", trainerError);
         toast({
           title: "Erro",
-          description: "Personal trainer não encontrado ou inativo. Faça login novamente.",
+          description: "Personal trainer não encontrado ou inativo. Verifique sua sessão e faça login novamente.",
           variant: "destructive",
         });
         return;
@@ -97,13 +97,13 @@ const CreateStudent = ({ trainerId, onClose, onSuccess }: CreateStudentProps) =>
         });
         toast({
           title: "Erro",
-          description: "Sessão inválida. Faça login novamente.",
+          description: "Sua sessão expirou ou é inválida. Faça login novamente.",
           variant: "destructive",
         });
         return;
       }
 
-      console.log("Trainer verified successfully:", trainerVerification);
+      console.log("Personal trainer verificado com sucesso:", trainerVerification);
       
       // Convert DD/MM/YYYY to YYYY-MM-DD if birth_date is provided
       let dbBirthDate = null;
@@ -162,7 +162,7 @@ const CreateStudent = ({ trainerId, onClose, onSuccess }: CreateStudentProps) =>
         
         let errorMessage = "Erro ao cadastrar aluno.";
         if (error.code === '23503') {
-          errorMessage = "Personal trainer não encontrado. Verifique sua sessão.";
+          errorMessage = "Personal trainer não encontrado. Sua sessão pode ter expirado. Faça login novamente.";
         } else if (error.code === '23505') {
           errorMessage = "Já existe um aluno com estes dados.";
         }
@@ -175,7 +175,7 @@ const CreateStudent = ({ trainerId, onClose, onSuccess }: CreateStudentProps) =>
         return;
       }
 
-      console.log("Student created successfully:", data);
+      console.log("Aluno criado com sucesso:", data);
 
       toast({
         title: "Sucesso!",
@@ -184,7 +184,7 @@ const CreateStudent = ({ trainerId, onClose, onSuccess }: CreateStudentProps) =>
 
       onSuccess();
     } catch (error) {
-      console.error("Error creating student:", error);
+      console.error("Erro ao criar aluno:", error);
       toast({
         title: "Erro",
         description: "Ocorreu um erro inesperado. Tente novamente.",

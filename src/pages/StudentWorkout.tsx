@@ -105,7 +105,7 @@ const StudentWorkout = () => {
         console.error("Student verification failed:", verification.error);
         toast({
           title: "Erro",
-          description: verification.error || "Número de estudante inválido.",
+          description: verification.error || "Número do aluno inválido.",
           variant: "destructive",
         });
         return;
@@ -113,7 +113,7 @@ const StudentWorkout = () => {
 
       const studentData = verification.student;
       setStudent(studentData);
-      console.log("Student verified and set:", studentData);
+      console.log("Aluno verificado e definido:", studentData);
 
       // Busca o plano de treino ativo com as sessões e exercícios
       const { data: workoutData, error: workoutError } = await supabase
@@ -156,7 +156,7 @@ const StudentWorkout = () => {
       console.log("Workout query result:", { workoutData, workoutError });
 
       if (workoutError || !workoutData) {
-        console.log("No active workout found for student:", studentData.id, workoutError);
+        console.log("Nenhum treino ativo encontrado para o aluno:", studentData.id, workoutError);
         toast({
           title: "Aviso",
           description: "Nenhum treino ativo encontrado. Entre em contato com seu personal trainer.",
@@ -165,7 +165,7 @@ const StudentWorkout = () => {
         return;
       }
 
-      console.log("Workout plan found:", workoutData);
+      console.log("Plano de treino encontrado:", workoutData);
 
       // Verifica os exercícios concluídos para hoje
       const today = new Date().toISOString().split("T")[0];
@@ -189,7 +189,7 @@ const StudentWorkout = () => {
 
       setWorkoutPlan(workoutData as any);
     } catch (error) {
-      console.error("Error loading student data:", error);
+      console.error("Erro ao carregar dados do aluno:", error);
       toast({
         title: "Erro",
         description: "Erro ao carregar dados do treino.",
@@ -653,8 +653,10 @@ const StudentWorkout = () => {
             <div className="space-y-2">
               <h3 className="text-lg font-semibold">Treino não encontrado</h3>
               <p className="text-muted-foreground text-sm">
-                Nenhum treino ativo foi encontrado para este link ou o link pode
-                estar inválido.
+                Nenhum treino ativo foi encontrado para este aluno ou o link pode estar inválido.
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Entre em contato com seu personal trainer para verificar se você tem um treino ativo.
               </p>
             </div>
             <div className="flex flex-col gap-2 pt-4">
