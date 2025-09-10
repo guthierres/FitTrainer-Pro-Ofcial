@@ -1,6 +1,3 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -17,7 +14,7 @@ interface CreateTrainerRequest {
   specializations?: string[];
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -48,7 +45,7 @@ serve(async (req) => {
     }
 
     // Create Supabase client with service role key for admin operations
-    const supabaseAdmin = createClient(
+    const supabaseAdmin = Supabase.createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
       {
@@ -60,7 +57,7 @@ serve(async (req) => {
     )
 
     // Create regular client to verify the requesting user
-    const supabaseClient = createClient(
+    const supabaseClient = Supabase.createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? ''
     )
@@ -79,8 +76,7 @@ serve(async (req) => {
       )
     }
 
-    // Check if user is a super admin (you can implement your own logic here)
-    // For now, we'll check if the user email matches the super admin email
+    // Check if user is a super admin
     const superAdminEmail = 'guthierresc@hotmail.com'
     if (user.email !== superAdminEmail) {
       return new Response(
