@@ -2,6 +2,8 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
+// REMOVA ESTA LINHA: export { verifyStudentAccess } from './client';
+
 const SUPABASE_URL = "https://hznkaddifujgchqlvqsb.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh6bmthZGRpZnVqZ2NocWx2cXNiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNzM2MjAsImV4cCI6MjA3MjY0OTYyMH0._b5NiAqeD0R4Xrj9VzUMCKsFW0YOgC6Gwg4ecD4XXXM";
 
@@ -25,54 +27,78 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
 export const setStudentContext = async (studentNumber?: string, studentToken?: string) => {
   if (studentNumber || studentToken) {
     try {
+      // Clear any existing auth session for public access
+      await supabase.auth.signOut();
+      
       const claims = {
         ...(studentNumber && { student_number: studentNumber }),
         ...(studentToken && { student_token: studentToken }),
         iss: 'fittrainer-pro',
         aud: 'anon',
         role: 'anon',
-        exp: Math.floor(Date.now() / 1000) + 3600
+        exp: Math.floor(Date.now() / 1000) + 7200, // 2 hours
+        iat: Math.floor(Date.now() / 1000)
       };
       
       console.log('Setting student context with claims:', claims);
       
-      // Set the custom claims in the request context
-      const customToken = createCustomJWT(claims);
+      // Create a more robust JWT token
+      const customToken = btoa(JSON.stringify(claims));
       
-      // Update the client headers to include the custom claims
-      supabase.rest.headers = {
-        ...supabase.rest.headers,
-        'Authorization': `Bearer ${customToken}`,
+      // Set custom headers for RLS context
+      const headers = {
+        'x-student-context': customToken,
+        'x-student-number': studentNumber || '',
+        'x-student-token': studentToken || ''
       };
+      
+      // Update supabase client headers
+      Object.assign(supabase.rest.headers, headers);
       
       console.log('Student context set successfully');
     } catch (error) {
       console.error('Error setting student context:', error);
     }
+  } else {
+    // Clear student context
+    delete supabase.rest.headers['x-student-context'];
+    delete supabase.rest.headers['x-student-number'];
+    delete supabase.rest.headers['x-student-token'];
   }
 };
 
-// Enhanced helper function to create a custom JWT for student context
-const createCustomJWT = (claims: any) => {
+// Helper function to verify student access
+export const verifyStudentAccess = async (studentNumber: string) => {
   try {
-    // Create a proper JWT structure for RLS context
-    const header = {
-      alg: 'HS256',
-      typ: 'JWT'
+    console.log('Verifying student access for:', studentNumber);
+    
+    // Set context first
+    await setStudentContext(studentNumber);
+    
+    // Try to fetch student data
+    const { data: studentData, error } = await supabase
+      .from('students')
+      .select('id, name, unique_link_token, active')
+      .eq('student_number', studentNumber)
+      .eq('active', true)
+      .single();
+
+    if (error || !studentData) {
+      console.error('Student verification failed:', error);
+      return { success: false, error: 'Student not found or inactive' };
+    }
+
+    console.log('Student verified:', studentData);
+    
+    // Update context with token
+    await setStudentContext(studentNumber, studentData.unique_link_token);
+    
+    return { 
+      success: true, 
+      student: studentData 
     };
-    
-    const payload = {
-      ...claims,
-      iat: Math.floor(Date.now() / 1000),
-      exp: Math.floor(Date.now() / 1000) + 3600
-    };
-    
-    const encodedHeader = btoa(JSON.stringify(header)).replace(/=/g, '');
-    const encodedPayload = btoa(JSON.stringify(payload)).replace(/=/g, '');
-    
-    return `${encodedHeader}.${encodedPayload}.signature`;
   } catch (error) {
-    console.error('Error creating custom JWT:', error);
-    return '';
+    console.error('Error verifying student access:', error);
+    return { success: false, error: 'Verification failed' };
   }
 };
