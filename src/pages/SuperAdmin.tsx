@@ -19,7 +19,10 @@ import {
   Search,
   Download,
   UserPlus,
-  Edit
+  Edit,
+  Dumbbell,
+  Book,
+  User
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -74,7 +77,7 @@ const SuperAdminLogin = ({ onLogin }: { onLogin: () => void }) => {
 
       // Check if user is super admin (you can add a custom claim or check email)
       const isSuperAdmin = authData.user.email === "guthierresc@hotmail.com" || 
-                          authData.user.user_metadata?.role === "super_admin";
+                           authData.user.user_metadata?.role === "super_admin";
       
       if (isSuperAdmin) {
         localStorage.setItem("superAdmin", JSON.stringify({
@@ -188,7 +191,6 @@ const SuperAdmin = () => {
     try {
       console.log("Loading trainers for super admin...");
       
-      // First verify we have proper authentication
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       if (authError || !user) {
         console.error("Authentication error:", authError);
@@ -202,7 +204,6 @@ const SuperAdmin = () => {
       
       console.log("Authenticated user:", user.email);
       
-      // Load trainers with statistics
       const { data, error } = await supabase
         .from("personal_trainers")
         .select(`
@@ -226,7 +227,6 @@ const SuperAdmin = () => {
       if (data) {
         console.log("Trainers loaded:", data.length);
         
-        // Transform data to include counts
         const trainersWithCounts = data.map(trainer => ({
           ...trainer,
           _count: {
@@ -255,6 +255,7 @@ const SuperAdmin = () => {
     try {
       console.log("Loading system stats...");
       
+      // Busca a contagem TOTAL de todos os registros
       const [trainersResult, studentsResult, workoutsResult, dietsResult] = await Promise.all([
         supabase.from("personal_trainers").select("id, active"),
         supabase.from("students").select("id, active"),
@@ -269,12 +270,13 @@ const SuperAdmin = () => {
         diets: dietsResult.data?.length || 0
       });
       
+      // Armazena a contagem total e a contagem de ativos
       setStats({
         totalTrainers: trainersResult.data?.length || 0,
         activeTrainers: trainersResult.data?.filter(t => t.active).length || 0,
-        totalStudents: studentsResult.data?.filter(s => s.active).length || 0,
-        totalWorkouts: workoutsResult.data?.filter(w => w.active).length || 0,
-        totalDiets: dietsResult.data?.filter(d => d.active).length || 0
+        totalStudents: studentsResult.data?.length || 0, // Removido o filtro .filter(s => s.active) para contar todos
+        totalWorkouts: workoutsResult.data?.length || 0, // Removido o filtro para contar todos
+        totalDiets: dietsResult.data?.length || 0 // Removido o filtro para contar todos
       });
     } catch (error) {
       console.error("Error loading stats:", error);
@@ -449,7 +451,7 @@ const SuperAdmin = () => {
           
           <Card>
             <CardContent className="flex items-center p-4">
-              <Users className="h-8 w-8 text-secondary mr-3" />
+              <User className="h-8 w-8 text-secondary mr-3" />
               <div>
                 <p className="text-2xl font-bold">{stats.totalStudents}</p>
                 <p className="text-sm text-muted-foreground">Total Alunos</p>
@@ -459,20 +461,20 @@ const SuperAdmin = () => {
           
           <Card>
             <CardContent className="flex items-center p-4">
-              <Activity className="h-8 w-8 text-warning mr-3" />
+              <Dumbbell className="h-8 w-8 text-warning mr-3" />
               <div>
                 <p className="text-2xl font-bold">{stats.totalWorkouts}</p>
-                <p className="text-sm text-muted-foreground">Treinos Ativos</p>
+                <p className="text-sm text-muted-foreground">Treinos Totais</p>
               </div>
             </CardContent>
           </Card>
           
           <Card>
             <CardContent className="flex items-center p-4">
-              <BarChart3 className="h-8 w-8 text-accent mr-3" />
+              <Book className="h-8 w-8 text-accent mr-3" />
               <div>
                 <p className="text-2xl font-bold">{stats.totalDiets}</p>
-                <p className="text-sm text-muted-foreground">Dietas Ativas</p>
+                <p className="text-sm text-muted-foreground">Dietas Totais</p>
               </div>
             </CardContent>
           </Card>
@@ -530,14 +532,15 @@ const SuperAdmin = () => {
                           <div>
                             <p><strong>CPF:</strong> {trainer.cpf}</p>
                             <p><strong>Email:</strong> {trainer.email || 'N/A'}</p>
-                              <p><strong>Alunos:</strong> {trainer._count?.students || 0}</p>
                             <p><strong>Telefone:</strong> {trainer.phone || 'N/A'}</p>
+                            <p><strong>Data de Nascimento:</strong> {trainer.birth_date ? new Date(trainer.birth_date).toLocaleDateString('pt-BR') : 'N/A'}</p>
                           </div>
                           <div>
                             <p><strong>CREF:</strong> {trainer.cref || 'N/A'}</p>
-                            <p><strong>Data de Nascimento:</strong> {trainer.birth_date ? new Date(trainer.birth_date).toLocaleDateString('pt-BR') : 'N/A'}</p>
                             <p><strong>Especialidades:</strong> {trainer.specializations?.join(', ') || 'N/A'}</p>
-                              <p><strong>Treinos:</strong> {trainer._count?.workout_plans || 0} | <strong>Dietas:</strong> {trainer._count?.diet_plans || 0}</p>
+                            <p><strong>Alunos Ativos:</strong> {trainer._count?.students || 0}</p>
+                            <p><strong>Treinos Ativos:</strong> {trainer._count?.workout_plans || 0}</p>
+                            <p><strong>Dietas Ativas:</strong> {trainer._count?.diet_plans || 0}</p>
                             <p><strong>Cadastrado em:</strong> {new Date(trainer.created_at).toLocaleDateString('pt-BR')}</p>
                           </div>
                         </div>
