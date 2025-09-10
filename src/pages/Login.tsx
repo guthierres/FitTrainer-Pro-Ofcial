@@ -20,6 +20,8 @@ const Login = () => {
     setIsLoading(true);
 
     try {
+      console.log("Attempting login for:", email);
+      
       // Authenticate with Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email,
@@ -36,32 +38,74 @@ const Login = () => {
         return;
       }
 
+      console.log("Authentication successful, user ID:", authData.user.id);
+      
       // Get trainer data from database
       const { data: trainerData, error: trainerError } = await supabase
         .from("personal_trainers")
         .select("*")
         .eq("auth_user_id", authData.user.id)
-        .eq("active", true)
         .single();
 
       if (trainerError || !trainerData) {
         console.error("Trainer data error:", trainerError);
+        
+        // Try to find trainer by email as fallback
+        const { data: trainerByEmail, error: emailError } = await supabase
+          .from("personal_trainers")
+          .select("*")
+          .eq("email", authData.user.email)
+          .single();
+          
+        if (emailError || !trainerByEmail) {
+          console.error("Trainer not found by email either:", emailError);
+          toast({
+            title: "Erro no login",
+            description: "Personal trainer não encontrado. Entre em contato com o administrador.",
+            variant: "destructive",
+          });
+          await supabase.auth.signOut();
+          return;
+        }
+        
+        // Update trainer with auth_user_id if found by email
+        const { error: updateError } = await supabase
+          .from("personal_trainers")
+          .update({ auth_user_id: authData.user.id })
+          .eq("id", trainerByEmail.id);
+          
+        if (updateError) {
+          console.error("Error updating trainer auth_user_id:", updateError);
+        }
+        
+        // Use the trainer found by email
+        await setTrainerData(trainerByEmail);
+      } else {
+        await setTrainerData(trainerData);
+      }
+
+      async function setTrainerData(trainer: any) {
+        console.log("Trainer found:", trainer.name, "Active:", trainer.active);
+        
+      // Check if trainer is active
+        if (!trainer.active) {
         toast({
-          title: "Erro no login",
-          description: "Personal trainer não encontrado ou inativo.",
+          title: "Conta inativa",
+          description: "Sua conta está inativa. Entre em contato com o administrador.",
           variant: "destructive",
         });
         await supabase.auth.signOut();
         return;
       }
-
+        
       // Store trainer info in localStorage
-      localStorage.setItem("trainer", JSON.stringify(trainerData));
+        localStorage.setItem("trainer", JSON.stringify(trainer));
       toast({
         title: "Login realizado com sucesso!",
-        description: `Bem-vindo, ${trainerData.name}!`,
+          description: `Bem-vindo, ${trainer.name}!`,
       });
       navigate("/dashboard");
+      }
     } catch (error) {
       console.error("Login exception:", error);
       toast({

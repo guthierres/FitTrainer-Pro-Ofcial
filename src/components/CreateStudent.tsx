@@ -70,41 +70,6 @@ const CreateStudent = ({ trainerId, onClose, onSuccess }: CreateStudentProps) =>
     try {
       console.log("Creating student for trainer:", trainerId);
       
-      // Verificar se o trainer existe e está ativo antes de tentar criar o aluno
-      const { data: trainerVerification, error: trainerError } = await supabase
-        .from("personal_trainers")
-        .select("id, name, active, auth_user_id")
-        .eq("id", trainerId)
-        .eq("active", true)
-        .single();
-
-      if (trainerError || !trainerVerification) {
-        console.error("Trainer verification failed:", trainerError);
-        toast({
-          title: "Erro",
-          description: "Personal trainer não encontrado ou inativo. Verifique sua sessão e faça login novamente.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Verificar se o auth_user_id corresponde ao usuário atual
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user || trainerVerification.auth_user_id !== user.id) {
-        console.error("Auth user mismatch:", { 
-          currentUser: user?.id, 
-          trainerAuthId: trainerVerification.auth_user_id 
-        });
-        toast({
-          title: "Erro",
-          description: "Sua sessão expirou ou é inválida. Faça login novamente.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      console.log("Personal trainer verificado com sucesso:", trainerVerification);
-      
       // Convert DD/MM/YYYY to YYYY-MM-DD if birth_date is provided
       let dbBirthDate = null;
       if (formData.birth_date) {
@@ -122,7 +87,6 @@ const CreateStudent = ({ trainerId, onClose, onSuccess }: CreateStudentProps) =>
 
       // Generate a more robust unique token
       const generateUniqueToken = () => {
-        // Create a more unique and longer token
         const timestamp = Date.now().toString(36);
         const randomStr1 = Math.random().toString(36).substring(2);
         const randomStr2 = Math.random().toString(36).substring(2);
@@ -141,7 +105,6 @@ const CreateStudent = ({ trainerId, onClose, onSuccess }: CreateStudentProps) =>
         goals: goals.length > 0 ? goals : null,
         medical_restrictions: formData.medical_restrictions ? formData.medical_restrictions.trim() : null,
         unique_link_token: generateUniqueToken(),
-        // student_number será gerado automaticamente pelo trigger
         active: true,
       };
 
@@ -162,7 +125,7 @@ const CreateStudent = ({ trainerId, onClose, onSuccess }: CreateStudentProps) =>
         
         let errorMessage = "Erro ao cadastrar aluno.";
         if (error.code === '23503') {
-          errorMessage = "Personal trainer não encontrado. Sua sessão pode ter expirado. Faça login novamente.";
+          errorMessage = "Personal trainer não encontrado. Verifique sua sessão.";
         } else if (error.code === '23505') {
           errorMessage = "Já existe um aluno com estes dados.";
         }

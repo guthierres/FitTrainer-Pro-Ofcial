@@ -191,48 +191,59 @@ const SuperAdmin = () => {
     try {
       console.log("Loading trainers for super admin...");
       
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
-      if (authError || !user) {
-        console.error("Authentication error:", authError);
-        toast({
-          title: "Erro de autenticação",
-          description: "Faça login novamente.",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      console.log("Authenticated user:", user.email);
-      
-      const { data, error } = await supabase
+      // Query personal_trainers with related counts
+      const { data: trainersData, error } = await supabase
         .from("personal_trainers")
         .select(`
           *,
-          students(id, active),
-          workout_plans(id, active),
-          diet_plans(id, active)
+          students(count),
+          workout_plans(count),
+          diet_plans(count)
         `)
         .order("created_at", { ascending: false });
 
       if (error) {
         console.error("Error loading trainers:", error);
-        toast({
-          title: "Erro",
-          description: `Erro ao carregar personal trainers: ${error.message}`,
-          variant: "destructive",
-        });
+        
+        // Fallback: query without counts if joins fail
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from("personal_trainers")
+          .select("*")
+          .order("created_at", { ascending: false });
+          
+        if (fallbackError) {
+          console.error("Fallback query also failed:", fallbackError);
+          toast({
+            title: "Erro",
+            description: "Erro ao carregar personal trainers.",
+            variant: "destructive",
+          });
+          return;
+        }
+        
+        // Use fallback data without counts
+        const trainersWithoutCounts = (fallbackData || []).map(trainer => ({
+          ...trainer,
+          _count: {
+            students: 0,
+            workout_plans: 0,
+            diet_plans: 0,
+          }
+        }));
+        
+        setTrainers(trainersWithoutCounts);
         return;
       }
       
-      if (data) {
-        console.log("Trainers loaded:", data.length);
+      if (trainersData) {
+        console.log("Trainers loaded:", trainersData.length);
         
-        const trainersWithCounts = data.map(trainer => ({
+        const trainersWithCounts = trainersData.map(trainer => ({
           ...trainer,
           _count: {
-            students: trainer.students?.filter(s => s.active).length || 0,
-            workout_plans: trainer.workout_plans?.filter(w => w.active).length || 0,
-            diet_plans: trainer.diet_plans?.filter(d => d.active).length || 0,
+            students: trainer.students?.length || 0,
+            workout_plans: trainer.workout_plans?.length || 0,
+            diet_plans: trainer.diet_plans?.length || 0,
           }
         }));
         
@@ -255,35 +266,35 @@ const SuperAdmin = () => {
     try {
       console.log("Loading system stats...");
       
-      // Busca a contagem TOTAL de todos os registros
+      // Fallback to direct queries
       const [trainersResult, studentsResult, workoutsResult, dietsResult] = await Promise.all([
-        supabase.from("personal_trainers").select("id, active"),
-        supabase.from("students").select("id, active"),
-        supabase.from("workout_plans").select("id, active"),
-        supabase.from("diet_plans").select("id, active")
+        supabase.from("personal_trainers").select("*"),
+        supabase.from("students").select("*"),
+        supabase.from("workout_plans").select("*"),
+        supabase.from("diet_plans").select("*")
       ]);
 
-      console.log("Stats results:", {
+      console.log("Direct query results:", {
         trainers: trainersResult.data?.length || 0,
         students: studentsResult.data?.length || 0,
         workouts: workoutsResult.data?.length || 0,
         diets: dietsResult.data?.length || 0
       });
-      
-      // Armazena a contagem total e a contagem de ativos
       setStats({
         totalTrainers: trainersResult.data?.length || 0,
         activeTrainers: trainersResult.data?.filter(t => t.active).length || 0,
-        totalStudents: studentsResult.data?.length || 0, // Removido o filtro .filter(s => s.active) para contar todos
-        totalWorkouts: workoutsResult.data?.length || 0, // Removido o filtro para contar todos
-        totalDiets: dietsResult.data?.length || 0 // Removido o filtro para contar todos
+        totalStudents: studentsResult.data?.length || 0,
+        totalWorkouts: workoutsResult.data?.length || 0,
+        totalDiets: dietsResult.data?.length || 0
       });
     } catch (error) {
       console.error("Error loading stats:", error);
-      toast({
-        title: "Erro",
-        description: "Erro ao carregar estatísticas do sistema.",
-        variant: "destructive",
+      setStats({
+        totalTrainers: 0,
+        activeTrainers: 0,
+        totalStudents: 0,
+        totalWorkouts: 0,
+        totalDiets: 0
       });
     }
   };
@@ -451,7 +462,7 @@ const SuperAdmin = () => {
           
           <Card>
             <CardContent className="flex items-center p-4">
-              <User className="h-8 w-8 text-secondary mr-3" />
+              <User className="h-8 w-8 text-blue-600 mr-3" />
               <div>
                 <p className="text-2xl font-bold">{stats.totalStudents}</p>
                 <p className="text-sm text-muted-foreground">Total Alunos</p>
@@ -471,7 +482,7 @@ const SuperAdmin = () => {
           
           <Card>
             <CardContent className="flex items-center p-4">
-              <Book className="h-8 w-8 text-accent mr-3" />
+              <Book className="h-8 w-8 text-purple-600 mr-3" />
               <div>
                 <p className="text-2xl font-bold">{stats.totalDiets}</p>
                 <p className="text-sm text-muted-foreground">Dietas Totais</p>
@@ -539,8 +550,8 @@ const SuperAdmin = () => {
                             <p><strong>CREF:</strong> {trainer.cref || 'N/A'}</p>
                             <p><strong>Especialidades:</strong> {trainer.specializations?.join(', ') || 'N/A'}</p>
                             <p><strong>Alunos Ativos:</strong> {trainer._count?.students || 0}</p>
-                            <p><strong>Treinos Ativos:</strong> {trainer._count?.workout_plans || 0}</p>
-                            <p><strong>Dietas Ativas:</strong> {trainer._count?.diet_plans || 0}</p>
+                            <p><strong>Treinos:</strong> {trainer._count?.workout_plans || 0}</p>
+                            <p><strong>Dietas:</strong> {trainer._count?.diet_plans || 0}</p>
                             <p><strong>Cadastrado em:</strong> {new Date(trainer.created_at).toLocaleDateString('pt-BR')}</p>
                           </div>
                         </div>

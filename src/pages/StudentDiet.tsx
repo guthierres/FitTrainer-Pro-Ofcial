@@ -117,10 +117,12 @@ export default function StudentDiet() {
 
   const fetchStudentData = async () => {
     try {
-      // Verify and set student context
+      console.log("🔍 Carregando dados do aluno (sem RLS):", studentNumber);
+      
+      // Verify student access directly
       const verification = await verifyStudentAccess(studentNumber);
       if (!verification.success) {
-        console.error("Student verification failed:", verification.error);
+        console.error("❌ Aluno não encontrado:", verification.error);
         toast({
           title: "Erro",
           description: verification.error || "Número do aluno inválido.",
@@ -130,6 +132,7 @@ export default function StudentDiet() {
       }
 
       const studentData = verification.student;
+      console.log("✅ Aluno verificado:", studentData);
       
       // Fetch complete student data with trainer info
       const { data: completeStudentData, error: completeError } = await supabase
@@ -143,12 +146,16 @@ export default function StudentDiet() {
         .eq('id', studentData.id)
         .single();
 
-      if (completeError) throw completeError;
-      if (!completeStudentData) throw new Error('Dados completos do aluno não encontrados');
+      if (completeError || !completeStudentData) {
+        console.error("❌ Erro ao buscar dados completos:", completeError);
+        throw completeError || new Error('Dados completos não encontrados');
+      }
 
       setStudent(completeStudentData);
-      setTrainer(completeStudentData.personal_trainers);
-      console.log("Dados do aluno e personal trainer carregados:", completeStudentData);
+      if (completeStudentData.personal_trainers) {
+        setTrainer(completeStudentData.personal_trainers);
+      }
+      console.log("✅ Dados completos carregados:", completeStudentData);
 
       // Fetch diet plan
       const { data: dietData, error: dietError } = await supabase
@@ -167,6 +174,7 @@ export default function StudentDiet() {
       if (dietData && !dietError) {
         setDietPlan(dietData);
         setMeals(dietData.meals?.sort((a: Meal, b: Meal) => a.order_index - b.order_index) || []);
+        console.log("🍎 Plano de dieta carregado");
       }
 
       // Fetch workout plan
@@ -190,6 +198,7 @@ export default function StudentDiet() {
 
       if (workoutData && !workoutError) {
         setWorkoutPlan(workoutData);
+        console.log("💪 Plano de treino carregado");
       }
 
       // Fetch completed meals for today
@@ -218,10 +227,10 @@ export default function StudentDiet() {
       }
 
     } catch (error) {
-      console.error('Erro ao buscar dados do aluno:', error);
+      console.error('❌ Erro geral:', error);
       toast({
         title: "Erro",
-        description: "Erro ao carregar dados do aluno",
+        description: "Erro interno. Tente novamente ou entre em contato com seu personal trainer.",
         variant: "destructive",
       });
     } finally {

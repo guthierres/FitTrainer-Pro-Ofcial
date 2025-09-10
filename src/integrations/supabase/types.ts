@@ -587,9 +587,21 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      get_student_context: {
+        Args: { context_key: string }
+        Returns: string
+      }
       is_trainer_or_student_access: {
         Args: { student_id: string; trainer_id: string }
         Returns: boolean
+      }
+      set_student_context: {
+        Args: { student_number?: string; student_token?: string }
+        Returns: Json
+      }
+      verify_student_access: {
+        Args: { student_num: string }
+        Returns: Json
       }
     }
     Enums: {

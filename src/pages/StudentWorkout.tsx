@@ -97,12 +97,12 @@ const StudentWorkout = () => {
     try {
       setIsLoading(true);
 
-      console.log("Loading student data for student number:", studentNumber);
+      console.log("🔍 Carregando dados do aluno (sem RLS):", studentNumber);
 
-      // Verify and set student context
+      // Verify student access directly
       const verification = await verifyStudentAccess(studentNumber);
       if (!verification.success) {
-        console.error("Student verification failed:", verification.error);
+        console.error("❌ Aluno não encontrado:", verification.error);
         toast({
           title: "Erro",
           description: verification.error || "Número do aluno inválido.",
@@ -113,9 +113,29 @@ const StudentWorkout = () => {
 
       const studentData = verification.student;
       setStudent(studentData);
-      console.log("Aluno verificado e definido:", studentData);
+      console.log("✅ Aluno encontrado:", studentData);
+      
+      // Buscar dados completos do aluno
+      const { data: completeStudentData, error: completeError } = await supabase
+        .from('students')
+        .select(`
+          *,
+          personal_trainers (
+            id, name, email, phone, cref
+          )
+        `)
+        .eq('id', studentData.id)
+        .single();
 
-      // Busca o plano de treino ativo com as sessões e exercícios
+      if (completeError || !completeStudentData) {
+        console.error("❌ Erro ao buscar dados completos:", completeError);
+        throw completeError || new Error('Dados completos não encontrados');
+      }
+
+      setStudent(completeStudentData);
+      console.log("✅ Dados completos carregados:", completeStudentData);
+      
+      // Buscar plano de treino ativo
       const { data: workoutData, error: workoutError } = await supabase
         .from("workout_plans")
         .select(
@@ -138,25 +158,25 @@ const StudentWorkout = () => {
                 rest_seconds,
                 notes,
                 order_index,
-                exercise:exercises(
+                exercises(
                   name,
                   muscle_groups,
                   equipment,
                   instructions,
-                  category:exercise_categories(name, emoji)
+                  exercise_categories(name, emoji)
                 )
               )
             )
           `
         )
-        .eq("student_id", studentData.id)
+        .eq("student_id", completeStudentData.id)
         .eq("active", true)
         .maybeSingle();
 
-      console.log("Workout query result:", { workoutData, workoutError });
+      console.log("💪 Resultado da consulta de treino:", { workoutData, workoutError });
 
       if (workoutError || !workoutData) {
-        console.log("Nenhum treino ativo encontrado para o aluno:", studentData.id, workoutError);
+        console.log("⚠️ Nenhum treino ativo encontrado");
         toast({
           title: "Aviso",
           description: "Nenhum treino ativo encontrado. Entre em contato com seu personal trainer.",
@@ -165,14 +185,14 @@ const StudentWorkout = () => {
         return;
       }
 
-      console.log("Plano de treino encontrado:", workoutData);
+      console.log("✅ Plano de treino carregado:", workoutData);
 
-      // Verifica os exercícios concluídos para hoje
+      // Verificar os exercícios concluídos para hoje
       const today = new Date().toISOString().split("T")[0];
       const { data: completions } = await supabase
         .from("exercise_completions")
         .select("workout_exercise_id")
-        .eq("student_id", studentData.id)
+        .eq("student_id", completeStudentData.id)
         .gte("completed_at", `${today}T00:00:00`)
         .lt("completed_at", `${today}T23:59:59`);
 
@@ -180,7 +200,7 @@ const StudentWorkout = () => {
         completions?.map((c) => c.workout_exercise_id) || []
       );
 
-      // Marca os exercícios como concluídos
+      // Marcar os exercícios como concluídos
       workoutData.workout_sessions.forEach((session: any) => {
         session.workout_exercises.forEach((exercise: any) => {
           exercise.isCompleted = completedExerciseIds.has(exercise.id);
@@ -189,10 +209,10 @@ const StudentWorkout = () => {
 
       setWorkoutPlan(workoutData as any);
     } catch (error) {
-      console.error("Erro ao carregar dados do aluno:", error);
+      console.error("❌ Erro geral:", error);
       toast({
         title: "Erro",
-        description: "Erro ao carregar dados do treino.",
+        description: "Erro interno. Tente novamente ou entre em contato com seu personal trainer.",
         variant: "destructive",
       });
     } finally {

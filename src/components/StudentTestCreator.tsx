@@ -37,24 +37,52 @@ const StudentTestCreator = ({ trainerId, onClose, onSuccess }: StudentTestCreato
     setDebugInfo("Iniciando teste de inserção...\n");
     
     try {
-      // First, verify trainer exists and is active
-      const { data: trainerData, error: trainerError } = await supabase
-        .from("personal_trainers")
-        .select("id, name, active")
-        .eq("id", trainerId)
-        .single();
-
-      if (trainerError || !trainerData) {
-        setDebugInfo(prev => prev + `Erro: Personal trainer não encontrado\n${trainerError?.message || 'Trainer not found'}\n`);
+      // Get current authenticated user
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      
+      if (userError || !user) {
+        setDebugInfo(prev => prev + `Erro: Usuário não autenticado\n${userError?.message || 'No user found'}\n`);
         return;
       }
 
-      if (!trainerData.active) {
+      setDebugInfo(prev => prev + `✓ Usuário autenticado: ${user.id}\n`);
+
+      // Get the personal trainer associated with this authenticated user
+      const { data: trainerData, error: trainerError } = await supabase
+        .from("personal_trainers")
+        .select("id, name, active")
+        .eq("auth_user_id", user.id)
+        .eq("active", true)
+        .single();
+
+      if (trainerError || !trainerData) {
+        setDebugInfo(prev => prev + `Erro: Personal trainer não encontrado para o usuário autenticado\n${trainerError?.message || 'Trainer not found'}\n`);
+        return;
+      }
+
+      setDebugInfo(prev => prev + `✓ Personal trainer encontrado: ${trainerData.name} (ID: ${trainerData.id})\n`);
+
+      // Use the authenticated trainer's ID instead of the prop
+      const authenticatedTrainerId = trainerData.id;
+
+      // First, verify trainer exists and is active
+      const { data: verifyTrainerData, error: verifyTrainerError } = await supabase
+        .from("personal_trainers")
+        .select("id, name, active")
+        .eq("id", authenticatedTrainerId)
+        .single();
+
+      if (verifyTrainerError || !verifyTrainerData) {
+        setDebugInfo(prev => prev + `Erro: Personal trainer não encontrado\n${verifyTrainerError?.message || 'Trainer not found'}\n`);
+        return;
+      }
+
+      if (!verifyTrainerData.active) {
         setDebugInfo(prev => prev + `Erro: Personal trainer está inativo\n`);
         return;
       }
 
-      setDebugInfo(prev => prev + `✓ Personal trainer verificado: ${trainerData.name}\n`);
+      setDebugInfo(prev => prev + `✓ Personal trainer verificado: ${verifyTrainerData.name}\n`);
 
       // Generate a robust unique token
       const generateToken = () => {
@@ -67,7 +95,7 @@ const StudentTestCreator = ({ trainerId, onClose, onSuccess }: StudentTestCreato
       };
 
       const testData = {
-        personal_trainer_id: trainerId,
+        personal_trainer_id: authenticatedTrainerId,
         name: formData.name.trim(),
         email: formData.email.trim() || null,
         phone: formData.phone.trim() || null,
@@ -80,11 +108,11 @@ const StudentTestCreator = ({ trainerId, onClose, onSuccess }: StudentTestCreato
         active: true,
       };
 
-      setDebugInfo(prev => prev + `\nDados a serem inseridos:\n${JSON.stringify(testData, null, 2)}\n\n`);
+      setDebugInfo(prev => prev + `\nDados a serem inseridos:\nTrainer ID do prop: ${trainerId}\nTrainer ID autenticado: ${authenticatedTrainerId}\nUser ID: ${user.id}\n${JSON.stringify(testData, null, 2)}\n\n`);
 
       console.log("Test data being inserted:", testData);
 
-      // Try to insert with explicit RLS bypass for testing
+      // Insert student with authenticated trainer context
       const { data, error } = await supabase
         .from("students")
         .insert(testData)
@@ -133,18 +161,29 @@ const StudentTestCreator = ({ trainerId, onClose, onSuccess }: StudentTestCreato
     try {
       setDebugInfo("Verificando personal trainer...\n");
       
-      const { data, error } = await supabase
-        .from("personal_trainers")
-        .select("id, name, active")
-        .eq("id", trainerId)
-        .single();
-
-      if (error) {
-        setDebugInfo(prev => prev + `❌ Erro ao verificar trainer:\n${error.message}\n`);
+      // Get current authenticated user
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      
+      if (userError || !user) {
+        setDebugInfo(prev => prev + `❌ Erro: Usuário não autenticado\n${userError?.message || 'No user found'}\n`);
         return;
       }
 
-      setDebugInfo(prev => prev + `✅ Personal Trainer encontrado:\nID: ${data.id}\nNome: ${data.name}\nAtivo: ${data.active}\n`);
+      setDebugInfo(prev => prev + `✓ Usuário autenticado: ${user.id}\n`);
+
+      // Check trainer by auth_user_id instead of direct ID
+      const { data, error } = await supabase
+        .from("personal_trainers")
+        .select("id, name, active")
+        .eq("auth_user_id", user.id)
+        .single();
+
+      if (error) {
+        setDebugInfo(prev => prev + `❌ Erro ao verificar trainer:\n${error.message}\nProp trainerId: ${trainerId}\nUser ID: ${user.id}\n`);
+        return;
+      }
+
+      setDebugInfo(prev => prev + `✅ Personal Trainer encontrado:\nID: ${data.id}\nNome: ${data.name}\nAtivo: ${data.active}\nProp trainerId: ${trainerId}\nUser ID: ${user.id}\n`);
     } catch (error: any) {
       setDebugInfo(prev => prev + `❌ Erro na verificação:\n${error.message}\n`);
     }

@@ -2,8 +2,6 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-// REMOVA ESTA LINHA: export { verifyStudentAccess } from './client';
-
 const SUPABASE_URL = "https://hznkaddifujgchqlvqsb.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh6bmthZGRpZnVqZ2NocWx2cXNiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNzM2MjAsImV4cCI6MjA3MjY0OTYyMH0._b5NiAqeD0R4Xrj9VzUMCKsFW0YOgC6Gwg4ecD4XXXM";
 
@@ -25,84 +23,29 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
 
 // Helper function to set student context for public access
 export const setStudentContext = async (studentNumber?: string, studentToken?: string) => {
-  if (studentNumber || studentToken) {
-    try {
-      // Clear any existing auth session for public access
+  try {
+    console.log('🔧 Definindo contexto do aluno (simplificado):', { studentNumber, studentToken });
+    
+    // Since RLS is disabled, we don't need to set context
+    // Just ensure we're not authenticated
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
       await supabase.auth.signOut();
-      
-      // Use multiple approaches to ensure context is set
-      const promises = [];
-      
-      if (studentNumber) {
-        promises.push(
-          supabase.rpc('set_config', {
-            setting_name: 'app.current_student_number',
-            setting_value: studentNumber,
-            is_local: true
-          })
-        );
-      }
-      
-      if (studentToken) {
-        promises.push(
-          supabase.rpc('set_config', {
-            setting_name: 'app.current_student_token',
-            setting_value: studentToken,
-            is_local: true
-          })
-        );
-      }
-      
-      // Set context using our custom function
-      const contextData = JSON.stringify({
-        student_number: studentNumber || null,
-        student_token: studentToken || null
-      });
-      
-      promises.push(
-        supabase.rpc('set_config', {
-          setting_name: 'app.student_context',
-          setting_value: contextData,
-          is_local: true
-        })
-      );
-      
-      await Promise.allSettled(promises);
-      console.log('Contexto do aluno definido com sucesso:', { studentNumber, studentToken });
-      
-    } catch (error) {
-      console.error('Erro ao definir contexto do aluno:', error);
     }
-  } else {
-    // Clear student context
-    try {
-      await Promise.allSettled([
-        supabase.rpc('set_config', {
-          setting_name: 'app.current_student_number',
-          setting_value: '',
-          is_local: true
-        }),
-        supabase.rpc('set_config', {
-          setting_name: 'app.current_student_token',
-          setting_value: '',
-          is_local: true
-        }),
-        supabase.rpc('set_config', {
-          setting_name: 'app.student_context',
-          setting_value: '{}',
-          is_local: true
-        })
-      ]);
-    } catch (error) {
-      console.warn('Erro ao limpar contexto do aluno:', error);
-    }
+    
+    console.log('✅ Contexto definido (sem RLS)');
+    return { success: true };
+    
+  } catch (error) {
+    console.error('❌ Erro ao definir contexto:', error);
+    throw error;
   }
 };
 
 // Helper function to verify student access
 export const verifyStudentAccess = async (studentNumber: string) => {
   try {
-    console.log('Verificando acesso do aluno para número:', studentNumber);
+    console.log('🔍 Verificando acesso direto do aluno:', studentNumber);
     
     if (!studentNumber || studentNumber.trim() === '') {
       return { 
@@ -111,44 +54,122 @@ export const verifyStudentAccess = async (studentNumber: string) => {
       };
     }
     
-    // First, try to find the student without context to verify existence
+    // Direct database query as anonymous user
     const { data: studentData, error } = await supabase
       .from('students')
-      .select('id, name, unique_link_token, active, personal_trainer_id')
-      .eq('student_number', studentNumber)
+      .select('id, name, student_number, unique_link_token, active, personal_trainer_id')
+      .eq('student_number', studentNumber.trim())
+      .eq('active', true)
+      .single();
+    
+    if (error) {
+      console.error('❌ Erro na consulta direta:', error);
+      return { 
+        success: false, 
+        error: 'Aluno não encontrado ou inativo.' 
+      };
+    }
+    
+    if (!studentData) {
+      console.error('❌ Aluno não encontrado');
+      return { 
+        success: false, 
+        error: 'Aluno não encontrado ou inativo' 
+      };
+    }
+    
+    console.log('✅ Aluno encontrado:', studentData);
+    return {
+      success: true,
+      student: studentData
+    };
+  } catch (error) {
+    console.error('❌ Erro ao verificar acesso do aluno:', error);
+    return { 
+      success: false, 
+      error: 'Erro interno. Tente novamente ou entre em contato com seu personal trainer.' 
+    };
+  }
+};
+
+// Alternative verification using token
+export const verifyStudentAccessByToken = async (token: string) => {
+  try {
+    console.log('Verifying student access by token');
+    
+    if (!token || token.trim() === '') {
+      return { 
+        success: false, 
+        error: 'Token is required' 
+      };
+    }
+    
+    // Try to find the student by token
+    const { data: studentData, error: studentError } = await supabase
+      .from('students')
+      .select('id, name, student_number, unique_link_token, active, personal_trainer_id')
+      .eq('unique_link_token', token.trim())
+      .eq('active', true)
       .single();
 
-    if (error || !studentData) {
-      console.error('Falha na verificação do aluno:', error);
+    if (studentError || !studentData) {
+      console.error('Student not found by token:', studentError);
       return { 
         success: false, 
-        error: 'Aluno não encontrado. Verifique o número do aluno.' 
+        error: 'Invalid access token' 
       };
     }
 
-    if (!studentData.active) {
-      return { 
-        success: false, 
-        error: 'Este aluno está inativo. Entre em contato com seu personal trainer.' 
-      };
-    }
-
-    if (!studentData.unique_link_token) {
-      return { 
-        success: false, 
-        error: 'Link do aluno inválido. Entre em contato com seu personal trainer.' 
-      };
-    }
-
-    console.log('Aluno verificado:', studentData);
+    // Set the student context
+    await setStudentContext(studentData.student_number, studentData.unique_link_token);
     
-    // Set context with both student number and token
-    await setStudentContext(studentNumber, studentData.unique_link_token);
-    
-    return { 
-      success: true, 
-      student: studentData 
+    console.log('Student verification by token successful:', studentData);
+    return {
+      success: true,
+      student: studentData
     };
+  } catch (error) {
+    console.error('Error verifying student access by token:', error);
+    return { 
+      success: false, 
+      error: 'Internal error. Please try again or contact your personal trainer.' 
+    };
+  }
+};
+
+export const verifyStudentAccessRPC = async (studentNumber: string) => {
+  try {
+    console.log('Verificando acesso do aluno via RPC:', studentNumber);
+    
+    if (!studentNumber || studentNumber.trim() === '') {
+      return { 
+        success: false, 
+        error: 'Número do aluno é obrigatório' 
+      };
+    }
+    
+    // Use the RPC function for verification
+    const { data: verificationResult, error } = await supabase.rpc('verify_student_access', {
+      student_number: studentNumber.trim()
+    });
+    
+    if (error) {
+      console.error('Erro na verificação RPC:', error);
+      return { 
+        success: false, 
+        error: 'Erro interno na verificação. Tente novamente.' 
+      };
+    }
+    
+    if (!verificationResult.success) {
+      return { 
+        success: false, 
+        error: verificationResult.error || 'Erro na verificação do aluno.' 
+      };
+    }
+    
+    console.log('Verificação bem-sucedida:', verificationResult);
+    return verificationResult;
   } catch (error) {
     console.error('Erro ao verificar acesso do aluno:', error);
     return { 

@@ -34,14 +34,25 @@ const PersonalTrainerTestLogin = ({ onClose }: PersonalTrainerTestLoginProps) =>
 
   const loadTrainers = async () => {
     try {
+      console.log("Loading trainers for test login...");
+      
       const { data, error } = await supabase
         .from("personal_trainers")
         .select("*")
-        .eq("active", true)
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error loading trainers:", error);
+        toast({
+          title: "Erro",
+          description: "Erro ao carregar personal trainers.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
       setTrainers(data || []);
+      console.log("Trainers loaded successfully:", data?.length || 0);
     } catch (error) {
       console.error("Error loading trainers:", error);
       toast({
@@ -131,7 +142,9 @@ const PersonalTrainerTestLogin = ({ onClose }: PersonalTrainerTestLoginProps) =>
                       <div className="space-y-2">
                         <div className="flex items-center gap-3">
                           <h3 className="font-semibold">{trainer.name}</h3>
-                          <Badge variant="default">Ativo</Badge>
+                          <Badge variant={trainer.active ? "default" : "secondary"}>
+                            {trainer.active ? "Ativo" : "Inativo"}
+                          </Badge>
                         </div>
                         
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
@@ -156,8 +169,9 @@ const PersonalTrainerTestLogin = ({ onClose }: PersonalTrainerTestLoginProps) =>
                       <Button 
                         onClick={() => testLogin(trainer)}
                         variant="outline"
+                        disabled={!trainer.active}
                       >
-                        Copiar Dados de Login
+                        {trainer.active ? "Copiar Dados de Login" : "Trainer Inativo"}
                       </Button>
                     </div>
                   </CardContent>

@@ -102,18 +102,6 @@ const CreatePersonalTrainer = ({ onClose, onSuccess }: CreatePersonalTrainerProp
     setIsLoading(true);
 
     try {
-      // Get current user session for authorization
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        toast({
-          title: "Erro",
-          description: "Você precisa estar logado para criar um personal trainer.",
-          variant: "destructive",
-        });
-        return;
-      }
-
       // Prepare data for the edge function
       const requestData = {
         name: formData.name,
@@ -124,6 +112,18 @@ const CreatePersonalTrainer = ({ onClose, onSuccess }: CreatePersonalTrainerProp
         cref: formData.cref || null,
         specializations: specializations.length > 0 ? specializations : [],
       };
+
+      // Get current session for authorization
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        toast({
+          title: "Erro",
+          description: "Você precisa estar logado para criar um personal trainer.",
+          variant: "destructive",
+        });
+        return;
+      }
 
       // Call the edge function to create the trainer
       const { data, error } = await supabase.functions.invoke('create-trainer', {
