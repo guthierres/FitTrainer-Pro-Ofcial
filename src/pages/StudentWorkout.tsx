@@ -145,7 +145,7 @@ const StudentWorkout = () => {
             description,
             personal_trainer:personal_trainers(name, cref),
             workout_sessions(
-              id,
+            exercise:exercises(
               name,
               description,
               day_of_week,
@@ -165,7 +165,7 @@ const StudentWorkout = () => {
                   instructions,
                   exercise_categories(name, emoji)
                 )
-              )
+              category:exercise_categories(name, emoji)
             )
           `
         )
@@ -204,6 +204,10 @@ const StudentWorkout = () => {
       workoutData.workout_sessions.forEach((session: any) => {
         session.workout_exercises.forEach((exercise: any) => {
           exercise.isCompleted = completedExerciseIds.has(exercise.id);
+          // Garantir que a estrutura do exercício está correta
+          if (exercise.exercise) {
+            exercise.exercise.category = exercise.exercise.category || { name: 'Geral', emoji: '💪' };
+          }
         });
       });
 
@@ -848,11 +852,11 @@ const StudentWorkout = () => {
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-semibold">{index + 1}.</span>
                           <h3 className="font-semibold">
-                            {exercise.exercise.name}
+                            {exercise.exercise?.name || 'Exercício não identificado'}
                           </h3>
                           <Badge variant="secondary">
-                            {exercise.exercise.category.emoji}{" "}
-                            {exercise.exercise.category.name}
+                            {exercise.exercise?.category?.emoji || '💪'}{" "}
+                            {exercise.exercise?.category?.name || 'Geral'}
                           </Badge>
                           {exercise.isCompleted && (
                             <Badge className="bg-green-500 text-white hover:bg-green-600">
@@ -906,7 +910,7 @@ const StudentWorkout = () => {
                               Músculos:
                             </span>
                             <span className="ml-2">
-                              {exercise.exercise.muscle_groups.join(", ")}
+                              {exercise.exercise?.muscle_groups?.join(", ") || 'Não especificado'}
                             </span>
                           </div>
                         )}
@@ -926,7 +930,7 @@ const StudentWorkout = () => {
                               Como executar:
                             </span>
                             <p className="text-sm ml-2 italic">
-                              {exercise.exercise.instructions}
+                              {exercise.exercise?.instructions || 'Instruções não disponíveis'}
                             </p>
                           </div>
                         )}
