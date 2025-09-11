@@ -778,7 +778,7 @@ const StudentWorkout = () => {
                   className="text-xs sm:text-sm h-9 sm:h-10"
                 >
                   <Download className="h-4 w-4 mr-1 sm:mr-2" />
-                  <span className="hidden sm:inline">Export</span>
+                  <span className="hidden sm:inline">Export Térmico</span>
                   <span className="sm:hidden">Exp</span>
                 </Button>
                 <Button
@@ -788,7 +788,7 @@ const StudentWorkout = () => {
                   className="text-xs sm:text-sm h-9 sm:h-10"
                 >
                   <Printer className="h-4 w-4 mr-1 sm:mr-2" />
-                  <span className="hidden sm:inline">Print</span>
+                  <span className="hidden sm:inline">Print Térmico</span>
                   <span className="sm:hidden">Prt</span>
                 </Button>
               </div>
