@@ -323,212 +323,445 @@ export default function StudentDiet() {
   };
 
   const handlePrint = () => {
-    // Generate PDF using jsPDF
-    import('jspdf').then(({ jsPDF }) => {
-      const doc = new jsPDF();
-      
-      // Configure colors and fonts
-      const primaryColor = [14, 165, 233]; // Blue
-      const secondaryColor = [100, 116, 139]; // Gray
-      const accentColor = [168, 85, 247]; // Purple for diet
-      
-      let y = 20;
-      const lineHeight = 8;
-      const pageWidth = doc.internal.pageSize.getWidth();
-      const pageHeight = doc.internal.pageSize.getHeight();
-      const margin = 20;
-      const contentWidth = pageWidth - (margin * 2);
+    generateThermalDietPDF();
+  };
 
-      // Header background
-      doc.setFillColor(...accentColor);
-      doc.rect(0, 0, pageWidth, 50, 'F');
-      
-      // Logo area
-      doc.setFillColor(255, 255, 255);
-      doc.circle(30, 25, 12, 'F');
-      doc.setTextColor(...accentColor);
-      doc.setFontSize(16);
-      doc.setFont("helvetica", "bold");
-      doc.text("🍎", 30, 30, { align: "center" });
-      
-      // Title
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(24);
-      doc.setFont("helvetica", "bold");
-      doc.text("FITTRAINER-PRO", 50, 25);
-      doc.setFontSize(12);
-      doc.setFont("helvetica", "normal");
-      doc.text("Plano Alimentar Personalizado", 50, 35);
-      
-      y = 65;
-      
-      // Reset text color
-      doc.setTextColor(0, 0, 0);
+  const generateThermalDietPDF = () => {
+    if (!dietPlan || !student) return;
 
-      // Student info card
-      doc.setFillColor(248, 250, 252);
-      doc.roundedRect(margin, y, contentWidth, 35, 5, 5, 'F');
-      doc.setDrawColor(...secondaryColor);
-      doc.roundedRect(margin, y, contentWidth, 35, 5, 5, 'S');
-      
-      y += 10;
-      doc.setFontSize(14);
-      doc.setFont("helvetica", "bold");
-      doc.text("INFORMAÇÕES DO ALUNO", margin + 5, y);
-      
-      y += 8;
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "normal");
-      doc.text(`Nome: ${student.name}`, margin + 5, y);
-      doc.text(`Data: ${new Date().toLocaleDateString("pt-BR")}`, pageWidth - margin - 5, y, { align: "right" });
-      
-      y += 6;
-      doc.text(`Número: ${student.student_number}`, margin + 5, y);
-      if (dietPlan) {
-        doc.text(`Plano: ${dietPlan.name}`, pageWidth - margin - 5, y, { align: "right" });
-      }
-      
-      y += 6;
-      if (trainer) {
-        doc.text(`Personal: ${trainer.name}`, margin + 5, y);
-        if (trainer.cref) {
-          doc.text(`CREF: ${trainer.cref}`, pageWidth - margin - 5, y, { align: "right" });
-        }
-      }
-      
-      y += 20;
-
-      // Diet goals if available
-      if (dietPlan && (dietPlan.daily_calories || dietPlan.daily_protein || dietPlan.daily_carbs || dietPlan.daily_fat)) {
-        // Goals card
-        doc.setFillColor(254, 249, 195);
-        doc.roundedRect(margin, y, contentWidth, 25, 5, 5, 'F');
-        doc.setDrawColor(251, 191, 36);
-        doc.roundedRect(margin, y, contentWidth, 25, 5, 5, 'S');
-        
-        y += 8;
-        doc.setFontSize(12);
-        doc.setFont("helvetica", "bold");
-        doc.setTextColor(146, 64, 14);
-        doc.text("🎯 METAS DIÁRIAS", margin + 5, y);
-        
-        y += 8;
-        doc.setFontSize(9);
-        doc.setFont("helvetica", "normal");
-        doc.setTextColor(0, 0, 0);
-        
-        let goalsText = "";
-        if (dietPlan.daily_calories) {
-          goalsText += `Calorias: ${dietPlan.daily_calories} kcal  `;
-        }
-        if (dietPlan.daily_protein) {
-          goalsText += `Proteína: ${dietPlan.daily_protein}g  `;
-        }
-        if (dietPlan.daily_carbs) {
-          goalsText += `Carboidratos: ${dietPlan.daily_carbs}g  `;
-        }
-        if (dietPlan.daily_fat) {
-          goalsText += `Gordura: ${dietPlan.daily_fat}g`;
-        }
-        
-        doc.text(goalsText, margin + 5, y);
-        y += 20;
-      }
-
-      // Meals
-      if (meals.length > 0) {
-        // Meals title
-        doc.setFillColor(...accentColor);
-        doc.rect(margin, y, contentWidth, 12, 'F');
-        doc.setTextColor(255, 255, 255);
-        doc.setFontSize(12);
-        doc.setFont("helvetica", "bold");
-        doc.text("🍽️ REFEIÇÕES DO DIA", margin + 5, y + 8);
-        
-        y += 20;
-        doc.setTextColor(0, 0, 0);
-        
-        meals.forEach((meal, mealIndex) => {
-          // Check if we need a new page
-          if (y > pageHeight - 80) {
-            doc.addPage();
-            y = 20;
-          }
-          
-          // Meal card
-          const mealCardHeight = 15 + (meal.meal_foods.length * 6);
-          doc.setFillColor(252, 252, 252);
-          doc.roundedRect(margin, y, contentWidth, mealCardHeight, 3, 3, 'F');
-          doc.setDrawColor(229, 231, 235);
-          doc.roundedRect(margin, y, contentWidth, mealCardHeight, 3, 3, 'S');
-          
-          // Meal header
-          doc.setFillColor(...accentColor);
-          doc.roundedRect(margin + 2, y + 2, contentWidth - 4, 10, 2, 2, 'F');
-          doc.setTextColor(255, 255, 255);
-          doc.setFontSize(10);
-          doc.setFont("helvetica", "bold");
-          doc.text(`${mealIndex + 1}. ${meal.name}`, margin + 5, y + 8);
-          
-          if (meal.time_of_day) {
-            doc.text(`🕐 ${meal.time_of_day}`, pageWidth - margin - 5, y + 8, { align: "right" });
-          }
-          
-          y += 15;
-          doc.setTextColor(0, 0, 0);
-          doc.setFontSize(8);
-          doc.setFont("helvetica", "normal");
-          
-          meal.meal_foods.forEach((food) => {
-            doc.text(`• ${food.quantity}${food.unit} ${food.food_name}`, margin + 8, y);
-            if (food.calories) {
-              doc.text(`${food.calories} kcal`, pageWidth - margin - 5, y, { align: "right" });
-            }
-            y += 5;
-            
-            if (food.protein || food.carbs || food.fat) {
-              let macros = "    ";
-              if (food.protein) macros += `P: ${food.protein}g `;
-              if (food.carbs) macros += `C: ${food.carbs}g `;
-              if (food.fat) macros += `G: ${food.fat}g`;
-              doc.setTextColor(...secondaryColor);
-              doc.text(macros, margin + 12, y);
-              doc.setTextColor(0, 0, 0);
-              y += 4;
-            }
-          });
-          
-          y += 8;
+    try {
+      import('jspdf').then(({ jsPDF }) => {
+        // Thermal printer format (80mm width)
+        const doc = new jsPDF({
+          unit: 'mm',
+          format: [80, 200] // 80mm width, auto height
         });
-      }
 
-      // Footer
-      y = pageHeight - 30;
-      doc.setFillColor(...accentColor);
-      doc.rect(0, y, pageWidth, 30, 'F');
-      
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(8);
-      doc.setFont("helvetica", "normal");
-      doc.text(`Sistema: FitTrainer-Pro | ${window.location.origin}/student/${studentNumber}/diet`, margin, y + 10);
-      doc.text(`Gerado em: ${new Date().toLocaleString("pt-BR")}`, margin, y + 18);
-      doc.text(`Aluno: ${student.student_number || 'N/A'} | Personal: ${trainer?.name || 'N/A'}`, margin, y + 26);
+        // Configure font
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8);
+        
+        let y = 5;
+        const lineHeight = 4;
+        const centerX = 40;
+        const margin = 3;
 
-      // Save PDF
-      const fileName = `FitTrainer-Pro_Dieta_${student.name.replace(/\s+/g, '_')}_${new Date().toLocaleDateString("pt-BR").replace(/\//g, "-")}.pdf`;
-      doc.save(fileName);
-      
-      toast({
-        title: "📄 Dieta exportada!",
-        description: "Arquivo PDF profissional gerado com sucesso.",
+        // Header
+        doc.setFontSize(12);
+        doc.setFont("helvetica", "bold");
+        doc.text("FITTRAINER-PRO", centerX, y, { align: "center" });
+        y += lineHeight;
+        
+        doc.setFontSize(10);
+        doc.text("PLANO ALIMENTAR", centerX, y, { align: "center" });
+        y += lineHeight;
+        
+        doc.setFontSize(8);
+        doc.text("================================", centerX, y, { align: "center" });
+        y += lineHeight * 1.5;
+
+        // Student info
+        doc.setFont("helvetica", "bold");
+        doc.text("DADOS DO ALUNO", margin, y);
+        y += lineHeight;
+        
+        doc.setFont("helvetica", "normal");
+        doc.text(`Nome: ${student.name}`, margin, y);
+        y += lineHeight;
+        doc.text(`Numero: ${student.student_number}`, margin, y);
+        y += lineHeight;
+        doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, margin, y);
+        y += lineHeight;
+        doc.text(`Hora: ${new Date().toLocaleTimeString('pt-BR')}`, margin, y);
+        y += lineHeight * 1.5;
+
+        // Trainer info
+        if (trainer) {
+          doc.setFont("helvetica", "bold");
+          doc.text("PERSONAL TRAINER", margin, y);
+          y += lineHeight;
+          
+          doc.setFont("helvetica", "normal");
+          doc.text(`Nome: ${trainer.name}`, margin, y);
+          y += lineHeight;
+          if (trainer.cref) {
+            doc.text(`CREF: ${trainer.cref}`, margin, y);
+            y += lineHeight;
+          }
+          if (trainer.phone) {
+            doc.text(`Tel: ${trainer.phone}`, margin, y);
+            y += lineHeight;
+          }
+          y += lineHeight;
+        }
+
+        // Diet plan info
+        doc.text("--------------------------------", centerX, y, { align: "center" });
+        y += lineHeight;
+        
+        doc.setFont("helvetica", "bold");
+        doc.text("PLANO ALIMENTAR", margin, y);
+        y += lineHeight;
+        
+        doc.setFont("helvetica", "normal");
+        doc.text(`Nome: ${dietPlan.name}`, margin, y);
+        y += lineHeight;
+        
+        if (dietPlan.description) {
+          const descLines = doc.splitTextToSize(dietPlan.description, 74);
+          doc.text(`Desc: ${descLines[0]}`, margin, y);
+          y += lineHeight;
+          if (descLines.length > 1) {
+            doc.text(`      ${descLines[1]}`, margin, y);
+            y += lineHeight;
+          }
+        }
+        y += lineHeight;
+
+        // Daily goals
+        if (dietPlan.daily_calories || dietPlan.daily_protein || dietPlan.daily_carbs || dietPlan.daily_fat) {
+          doc.setFont("helvetica", "bold");
+          doc.text("METAS DIARIAS", margin, y);
+          y += lineHeight;
+          
+          doc.setFont("helvetica", "normal");
+          if (dietPlan.daily_calories) {
+            doc.text(`Calorias: ${dietPlan.daily_calories} kcal`, margin, y);
+            y += lineHeight;
+          }
+          if (dietPlan.daily_protein) {
+            doc.text(`Proteina: ${dietPlan.daily_protein}g`, margin, y);
+            y += lineHeight;
+          }
+          if (dietPlan.daily_carbs) {
+            doc.text(`Carboidratos: ${dietPlan.daily_carbs}g`, margin, y);
+            y += lineHeight;
+          }
+          if (dietPlan.daily_fat) {
+            doc.text(`Gordura: ${dietPlan.daily_fat}g`, margin, y);
+            y += lineHeight;
+          }
+          y += lineHeight;
+        }
+
+        doc.text("================================", centerX, y, { align: "center" });
+        y += lineHeight;
+
+        // Meals
+        if (meals.length > 0) {
+          doc.setFont("helvetica", "bold");
+          doc.text("REFEICOES DO DIA", centerX, y, { align: "center" });
+          y += lineHeight * 1.5;
+          
+          meals.forEach((meal, mealIndex) => {
+            // Check if we need a new page
+            if (y > 280) {
+              doc.addPage();
+              y = 10;
+            }
+            
+            doc.text("--------------------------------", centerX, y, { align: "center" });
+            y += lineHeight;
+            
+            doc.setFont("helvetica", "bold");
+            doc.text(`${mealIndex + 1}. ${meal.name.toUpperCase()}`, margin, y);
+            y += lineHeight;
+            
+            if (meal.time_of_day) {
+              doc.setFont("helvetica", "normal");
+              doc.text(`Horario: ${meal.time_of_day}`, margin, y);
+              y += lineHeight;
+            }
+            
+            doc.text("- - - - - - - - - - - - - - - - -", centerX, y, { align: "center" });
+            y += lineHeight;
+            
+            // Foods
+            meal.meal_foods.forEach((food, foodIndex) => {
+              doc.setFont("helvetica", "normal");
+              
+              // Food name and quantity
+              const foodLine = `${foodIndex + 1}. ${food.quantity}${food.unit} ${food.food_name}`;
+              const foodLines = doc.splitTextToSize(foodLine, 74);
+              
+              foodLines.forEach((line: string, lineIndex: number) => {
+                doc.text(line, margin, y);
+                y += lineHeight;
+              });
+              
+              // Calories
+              if (food.calories) {
+                doc.text(`   Calorias: ${food.calories} kcal`, margin, y);
+                y += lineHeight;
+              }
+              
+              // Macros
+              if (food.protein || food.carbs || food.fat) {
+                let macros = "   Macros: ";
+                if (food.protein) macros += `P:${food.protein}g `;
+                if (food.carbs) macros += `C:${food.carbs}g `;
+                if (food.fat) macros += `G:${food.fat}g`;
+                doc.text(macros, margin, y);
+                y += lineHeight;
+              }
+              
+              // Notes
+              if (food.notes) {
+                const noteLines = doc.splitTextToSize(`   Obs: ${food.notes}`, 74);
+                noteLines.forEach((line: string) => {
+                  doc.text(line, margin, y);
+                  y += lineHeight;
+                });
+              }
+              
+              y += lineHeight * 0.5;
+            });
+            
+            y += lineHeight;
+          });
+        }
+
+        // Footer
+        y += lineHeight;
+        doc.text("================================", centerX, y, { align: "center" });
+        y += lineHeight;
+        
+        doc.setFont("helvetica", "bold");
+        doc.text("INFORMACOES DO SISTEMA", centerX, y, { align: "center" });
+        y += lineHeight;
+        
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(7);
+        doc.text(`Sistema: FitTrainer-Pro v1.0`, margin, y);
+        y += lineHeight;
+        doc.text(`Link: ${window.location.origin}/student/${studentNumber}/diet`, margin, y);
+        y += lineHeight;
+        doc.text(`Gerado: ${new Date().toLocaleString('pt-BR')}`, margin, y);
+        y += lineHeight * 2;
+        
+        doc.text("================================", centerX, y, { align: "center" });
+        y += lineHeight;
+        doc.text("Assinatura do Personal Trainer", centerX, y, { align: "center" });
+        y += lineHeight * 2;
+        doc.text("_______________________________", centerX, y, { align: "center" });
+        y += lineHeight;
+        doc.text(trainer?.name || 'Personal Trainer', centerX, y, { align: "center" });
+        y += lineHeight;
+        doc.text(trainer?.cref || 'CREF: N/A', centerX, y, { align: "center" });
+
+        // Save PDF
+        const fileName = `FitTrainer-Pro_Dieta_Termica_${student.name.replace(/\s+/g, '_')}_${new Date().toLocaleDateString("pt-BR").replace(/\//g, "-")}.pdf`;
+        doc.save(fileName);
+        
+        toast({
+          title: "📄 Dieta exportada!",
+          description: "Arquivo PDF térmico gerado com sucesso.",
+        });
+      }).catch(() => {
+        toast({
+          title: "Erro",
+          description: "Não foi possível gerar o PDF. Tente novamente.",
+          variant: "destructive"
+        });
       });
-    }).catch(() => {
+    } catch (error) {
+      console.error("Error generating thermal PDF:", error);
       toast({
         title: "Erro",
-        description: "Não foi possível gerar o PDF. Tente novamente.",
+        description: "Erro ao gerar PDF térmico.",
         variant: "destructive"
       });
-    });
+    }
+  };
+
+  const printThermalDiet = () => {
+    if (!dietPlan || !student) return;
+
+    try {
+      // Criar conteúdo para impressora térmica (80mm)
+      const thermalContent = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Comprovante Dieta Térmico - ${student.name}</title>
+  <style>
+    @page { 
+      size: 80mm auto; 
+      margin: 0; 
+    }
+    
+    body { 
+      width: 80mm; 
+      margin: 0; 
+      padding: 3mm; 
+      font-family: 'Courier New', monospace; 
+      font-size: 9px; 
+      line-height: 1.3; 
+      color: #000; 
+      background: white;
+    }
+    
+    .center { text-align: center; }
+    .bold { font-weight: bold; }
+    .separator { 
+      border-top: 1px dashed #000; 
+      margin: 3mm 0; 
+      width: 100%;
+    }
+    .small { font-size: 7px; }
+    .meal { 
+      margin: 2mm 0; 
+      padding: 1mm 0;
+      border-bottom: 1px dotted #ccc;
+    }
+    .meal-header { 
+      font-weight: bold; 
+      font-size: 10px; 
+      margin-bottom: 1mm;
+    }
+    .food-item { 
+      margin: 1mm 0; 
+      padding-left: 2mm;
+    }
+    .status-ok { font-weight: bold; }
+    .status-pending { color: #666; }
+    .header-box {
+      border: 2px solid #000;
+      padding: 2mm;
+      margin-bottom: 3mm;
+    }
+    .footer-box {
+      border: 1px solid #000;
+      padding: 2mm;
+      margin-top: 3mm;
+      background: #f5f5f5;
+    }
+  </style>
+</head>
+<body>
+  <div class="header-box center">
+    <div class="bold" style="font-size: 12px;">FITTRAINER-PRO</div>
+    <div class="bold" style="font-size: 10px;">PLANO ALIMENTAR</div>
+    <div class="separator"></div>
+    <div class="small">Data: ${new Date().toLocaleDateString("pt-BR")}</div>
+    <div class="small">Hora: ${new Date().toLocaleTimeString("pt-BR")}</div>
+  </div>
+  
+  <div class="bold">PERSONAL TRAINER:</div>
+  <div>${trainer?.name || 'N/A'}</div>
+  ${trainer?.cref ? `<div class="small">CREF: ${trainer.cref}</div>` : ""}
+  ${trainer?.phone ? `<div class="small">Tel: ${trainer.phone}</div>` : ""}
+  
+  <div class="separator"></div>
+  
+  <div class="bold">DADOS DO ALUNO:</div>
+  <div>Nome: ${student.name}</div>
+  <div class="small">Numero: ${student.student_number}</div>
+  ${student.weight ? `<div class="small">Peso: ${student.weight}kg</div>` : ""}
+  ${student.height ? `<div class="small">Altura: ${student.height}m</div>` : ""}
+  
+  <div class="separator"></div>
+  
+  <div class="bold">PLANO ALIMENTAR:</div>
+  <div>${dietPlan.name}</div>
+  ${dietPlan.description ? `<div class="small">Desc: ${dietPlan.description}</div>` : ""}
+  
+  ${(dietPlan.daily_calories || dietPlan.daily_protein || dietPlan.daily_carbs || dietPlan.daily_fat) ? `
+  <div class="separator"></div>
+  <div class="bold center">METAS DIARIAS</div>
+  ${dietPlan.daily_calories ? `<div>Calorias: ${dietPlan.daily_calories} kcal</div>` : ""}
+  ${dietPlan.daily_protein ? `<div>Proteina: ${dietPlan.daily_protein}g</div>` : ""}
+  ${dietPlan.daily_carbs ? `<div>Carboidratos: ${dietPlan.daily_carbs}g</div>` : ""}
+  ${dietPlan.daily_fat ? `<div>Gordura: ${dietPlan.daily_fat}g</div>` : ""}
+  ` : ""}
+  
+  <div class="separator"></div>
+  
+  <div class="bold center">REFEICOES DO DIA</div>
+  
+  ${meals.map((meal, mealIndex) => `
+    <div class="meal">
+      <div class="meal-header">
+        ${mealIndex + 1}. ${meal.name.toUpperCase()}
+      </div>
+      ${meal.time_of_day ? `<div class="small">Horario: ${meal.time_of_day}</div>` : ""}
+      
+      ${meal.meal_foods.map((food, foodIndex) => `
+        <div class="food-item">
+          <div>${foodIndex + 1}. ${food.quantity}${food.unit} ${food.food_name}</div>
+          ${food.calories ? `<div class="small">   Calorias: ${food.calories} kcal</div>` : ""}
+          ${(food.protein || food.carbs || food.fat) ? `
+            <div class="small">   Macros: ${food.protein ? `P:${food.protein}g ` : ""}${food.carbs ? `C:${food.carbs}g ` : ""}${food.fat ? `G:${food.fat}g` : ""}</div>
+          ` : ""}
+          ${food.notes ? `<div class="small">   Obs: ${food.notes}</div>` : ""}
+          
+          <div class="small ${completedMeals.has(meal.id) ? 'status-ok' : 'status-pending'}">
+            Status: ${completedMeals.has(meal.id) ? '[✓] CONSUMIDO' : '[ ] PENDENTE'}
+          </div>
+        </div>
+      `).join("")}
+    </div>
+  `).join("")}
+  
+  <div class="separator"></div>
+  
+  <div class="footer-box">
+    <div class="center bold">INFORMACOES DO SISTEMA</div>
+    <div class="small">Sistema: FitTrainer-Pro v1.0</div>
+    <div class="small">Link: ${window.location.origin}/student/${studentNumber}/diet</div>
+    <div class="small">Gerado: ${new Date().toLocaleString("pt-BR")}</div>
+  </div>
+  
+  <div class="center small" style="margin-top: 3mm;">
+    ================================<br>
+    Assinatura do Personal Trainer<br>
+    <br>
+    _______________________________<br>
+    ${trainer?.name || 'Personal Trainer'}<br>
+    ${trainer?.cref || 'CREF: N/A'}
+  </div>
+  
+  <script>
+    window.onload = function() {
+      setTimeout(() => {
+        window.print();
+      }, 500);
+    }
+    
+    window.onafterprint = function() {
+      setTimeout(() => {
+        window.close();
+      }, 1000);
+    }
+  </script>
+</body>
+</html>`;
+
+      const printWindow = window.open("", "_blank", "width=400,height=600");
+      if (printWindow) {
+        printWindow.document.write(thermalContent);
+        printWindow.document.close();
+        
+        toast({
+          title: "Imprimindo...",
+          description: "Enviando dieta para impressora térmica.",
+        });
+      } else {
+        toast({
+          title: "Erro",
+          description: "Não foi possível abrir a janela de impressão. Verifique se pop-ups estão permitidos.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error printing:", error);
+      toast({
+        title: "Erro",
+        description: "Erro ao preparar impressão.",
+        variant: "destructive",
+      });
+    }
   };
 
   if (loading) {
@@ -604,7 +837,7 @@ export default function StudentDiet() {
             </div>
             <Button onClick={handlePrint} className="print:hidden">
               <Printer className="w-4 h-4 mr-2" />
-              Imprimir
+              Imprimir Térmico
             </Button>
           </div>
 
