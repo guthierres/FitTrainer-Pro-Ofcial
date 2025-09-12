@@ -584,7 +584,7 @@ export default function StudentDiet() {
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Comprovante Dieta Térmico - ${student.name}</title>
+  <title>Comprovante Dieta - ${student.name}</title>
   <style>
     @page { 
       size: 80mm auto; 
@@ -837,7 +837,7 @@ export default function StudentDiet() {
             </div>
             <Button onClick={handlePrint} className="print:hidden">
               <Printer className="w-4 h-4 mr-2" />
-              Imprimir Térmico
+              Exportar PDF
             </Button>
           </div>
 
