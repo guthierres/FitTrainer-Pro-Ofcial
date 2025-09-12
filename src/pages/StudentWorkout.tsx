@@ -16,10 +16,12 @@ import {
   Calendar,
   Apple,
   X,
+  Play,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { setStudentContext, verifyStudentAccess } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import VideoModal from "@/components/VideoModal";
 
 interface Student {
   id: string;
@@ -40,6 +42,7 @@ interface WorkoutExercise {
     muscle_groups: string[];
     equipment: string[];
     instructions: string; // Adicionado para exibir as instruções
+    youtube_video_url?: string;
   };
   sets: number;
   reps_min?: number;
@@ -75,6 +78,15 @@ const StudentWorkout = () => {
   const [workoutPlan, setWorkoutPlan] = useState<WorkoutPlan | null>(null);
   const [selectedDay, setSelectedDay] = useState<number>(new Date().getDay());
   const [isLoading, setIsLoading] = useState(true);
+  const [videoModal, setVideoModal] = useState<{
+    isOpen: boolean;
+    exerciseName: string;
+    youtubeUrl?: string;
+  }>({
+    isOpen: false,
+    exerciseName: "",
+    youtubeUrl: undefined,
+  });
   const { toast } = useToast();
 
   const daysOfWeek = [
@@ -163,6 +175,7 @@ const StudentWorkout = () => {
                   description,
                   instructions,
                   muscle_groups,
+                youtube_video_url,
                   equipment,
                   exercise_categories(name, emoji)
                 )
@@ -212,6 +225,7 @@ const StudentWorkout = () => {
               name: exercise.exercises.name || 'Exercício não identificado',
               description: exercise.exercises.description,
               instructions: exercise.exercises.instructions,
+              youtube_video_url: exercise.exercises.youtube_video_url,
               muscle_groups: exercise.exercises.muscle_groups || [],
               equipment: exercise.exercises.equipment || [],
               category: exercise.exercises.exercise_categories || { name: 'Geral', emoji: '💪' }
@@ -222,6 +236,7 @@ const StudentWorkout = () => {
               name: 'Exercício não identificado',
               description: null,
               instructions: null,
+              youtube_video_url: null,
               muscle_groups: [],
               equipment: [],
               category: { name: 'Geral', emoji: '💪' }
@@ -270,6 +285,22 @@ const StudentWorkout = () => {
     } catch (error) {
       console.error("Error marking exercise as completed:", error);
     }
+  };
+
+  const openVideoModal = (exerciseName: string, youtubeUrl?: string) => {
+    setVideoModal({
+      isOpen: true,
+      exerciseName,
+      youtubeUrl,
+    });
+  };
+
+  const closeVideoModal = () => {
+    setVideoModal({
+      isOpen: false,
+      exerciseName: "",
+      youtubeUrl: undefined,
+    });
   };
 
   const exportWorkout = () => {
@@ -447,6 +478,12 @@ const StudentWorkout = () => {
             doc.text(line, margin, y);
             y += lineHeight;
           });
+        }
+        
+        // YouTube video URL
+        if (exercise.exercise.youtube_video_url) {
+          doc.text(`Video: ${exercise.exercise.youtube_video_url}`, margin, y);
+          y += lineHeight;
         }
         
         y += lineHeight;
@@ -635,6 +672,11 @@ const StudentWorkout = () => {
         
         ${exercise.exercise.instructions 
           ? `<div class="small">Execução: ${exercise.exercise.instructions.substring(0, 80)}...</div>`
+          : ""
+        }
+        
+        ${exercise.exercise.youtube_video_url 
+          ? `<div class="small">Vídeo: ${exercise.exercise.youtube_video_url}</div>`
           : ""
         }
       </div>
@@ -981,6 +1023,20 @@ const StudentWorkout = () => {
                             </p>
                           </div>
                         )}
+
+                        {exercise.exercise.youtube_video_url && (
+                          <div className="pt-2 border-t">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openVideoModal(exercise.exercise.name, exercise.exercise.youtube_video_url)}
+                              className="w-full"
+                            >
+                              <Play className="h-4 w-4 mr-2" />
+                              Ver Vídeo Demonstrativo
+                            </Button>
+                          </div>
+                        )}
                       </div>
 
                       {!exercise.isCompleted && (
@@ -1026,6 +1082,14 @@ const StudentWorkout = () => {
           )}
         </div>
       </div>
+
+      {/* Video Modal */}
+      <VideoModal
+        isOpen={videoModal.isOpen}
+        onClose={closeVideoModal}
+        exerciseName={videoModal.exerciseName}
+        youtubeUrl={videoModal.youtubeUrl}
+      />
     );
   };
 
