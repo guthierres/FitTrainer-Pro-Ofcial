@@ -16,14 +16,18 @@ const VideoModal = ({ isOpen, onClose, exerciseName, youtubeUrl }: VideoModalPro
   const getYouTubeEmbedUrl = (url: string) => {
     if (!url) return null;
     
-    // Extract video ID from various YouTube URL formats
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    // Expressão regular para links de vídeo padrão e Shorts
+    const regExp = /(?:youtube\.com\/(?:shorts\/|embed\/|v\/|watch\?v=|[^#&?]*?v=)|youtu\.be\/)([^"&?/]{11})/;
     const match = url.match(regExp);
     
-    if (match && match[2].length === 11) {
-      return `https://www.youtube.com/embed/${match[2]}?autoplay=1&rel=0&modestbranding=1`;
+    // Verifica se a correspondência existe e o ID tem 11 caracteres (padrão)
+    if (match && match[1].length === 11) {
+      const videoId = match[1];
+      // Retorna a URL de incorporação com parâmetros úteis
+      return `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1`;
     }
     
+    // Retorna nulo se o link não for válido
     return null;
   };
 
