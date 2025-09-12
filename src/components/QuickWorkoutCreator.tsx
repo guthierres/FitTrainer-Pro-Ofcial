@@ -9,10 +9,11 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { X, Plus, Dumbbell, Edit, Trash2, Settings } from "lucide-react";
+import { X, Plus, Dumbbell, Settings, Play, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import WorkoutPlanEditor from "./WorkoutPlanEditor";
+import VideoModal from "./VideoModal";
 
 interface Exercise {
   id: string;
@@ -21,6 +22,7 @@ interface Exercise {
   instructions?: string;
   muscle_groups?: string[];
   equipment?: string[];
+  youtube_video_url?: string;
 }
 
 interface ExistingWorkoutPlan {
@@ -100,6 +102,15 @@ const QuickWorkoutCreator = ({ studentId, studentName, trainerId, onClose, onSuc
   const [categories, setCategories] = useState<ExerciseCategory[]>([]);
   const [sessions, setSessions] = useState<WorkoutSession[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [videoModal, setVideoModal] = useState<{
+    isOpen: boolean;
+    exerciseName: string;
+    youtubeUrl?: string;
+  }>({
+    isOpen: false,
+    exerciseName: "",
+    youtubeUrl: undefined,
+  });
   const { toast } = useToast();
 
   useEffect(() => {
@@ -274,7 +285,7 @@ const QuickWorkoutCreator = ({ studentId, studentName, trainerId, onClose, onSuc
       sets: 3,
       reps_min: 8,
       reps_max: 12,
-      rest_minutes: 1, // 60 segundos padrão
+      rest_minutes: 1,
       order_index: sessions[sessionIndex].exercises.length,
     };
 
@@ -417,6 +428,22 @@ const QuickWorkoutCreator = ({ studentId, studentName, trainerId, onClose, onSuc
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const openVideoModal = (exerciseName: string, youtubeUrl?: string) => {
+    setVideoModal({
+      isOpen: true,
+      exerciseName,
+      youtubeUrl,
+    });
+  };
+
+  const closeVideoModal = () => {
+    setVideoModal({
+      isOpen: false,
+      exerciseName: "",
+      youtubeUrl: undefined,
+    });
   };
 
   const getExercisesByCategory = (categoryId: string) => {
@@ -633,7 +660,7 @@ const QuickWorkoutCreator = ({ studentId, studentName, trainerId, onClose, onSuc
                 </div>
 
                 {/* Training Sessions */}
-                {sessions.map((session, sessionIndex) => {            
+                {sessions.map((session, sessionIndex) => {        
                   return (
                     <Card key={session.day} className="border-2 border-primary/20">
                       <CardHeader className="pb-4">
@@ -715,14 +742,28 @@ const QuickWorkoutCreator = ({ studentId, studentName, trainerId, onClose, onSuc
                                         >
                                           <div className="flex-1">
                                             <h4 className="font-medium text-sm">{exercise.name}</h4>
-                                            {exercise.muscle_groups && exercise.muscle_groups.length > 0 && (
+                                            {Array.isArray(exercise.muscle_groups) && exercise.muscle_groups.length > 0 && (
                                               <div className="flex gap-1 mt-1">
-                                                {exercise.muscle_groups.slice(0, 2).map(muscle => (
-                                                  <Badge key={muscle} variant="secondary" className="text-xs">
+                                                {exercise.muscle_groups.slice(0, 2).map((muscle, index) => (
+                                                  <Badge key={`${muscle}-${index}`} variant="secondary" className="text-xs">
                                                     {muscle}
                                                   </Badge>
                                                 ))}
                                               </div>
+                                            )}
+                                            {exercise.youtube_video_url && (
+                                              <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  openVideoModal(exercise.name, exercise.youtube_video_url);
+                                                }}
+                                                className="mt-1 h-6 px-2 text-xs"
+                                              >
+                                                <Play className="h-3 w-3 mr-1" />
+                                                Ver vídeo
+                                              </Button>
                                             )}
                                           </div>
                                           <Button
@@ -874,6 +915,14 @@ const QuickWorkoutCreator = ({ studentId, studentName, trainerId, onClose, onSuc
           }}
         />
       )}
+
+      {/* Video Modal */}
+      <VideoModal
+        isOpen={videoModal.isOpen}
+        onClose={closeVideoModal}
+        exerciseName={videoModal.exerciseName}
+        youtubeUrl={videoModal.youtubeUrl}
+      />
     </div>
   );
 };

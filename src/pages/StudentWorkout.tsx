@@ -16,11 +16,14 @@ import {
   Calendar,
   Apple,
   X,
+  Play,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { setStudentContext, verifyStudentAccess } from "@/integrations/supabase/client";
+import { verifyStudentAccess } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import VideoModal from "@/components/VideoModal";
 
+// Interfaces de dados
 interface Student {
   id: string;
   name: string;
@@ -39,7 +42,8 @@ interface WorkoutExercise {
     };
     muscle_groups: string[];
     equipment: string[];
-    instructions: string; // Adicionado para exibir as instruções
+    instructions: string;
+    youtube_video_url?: string;
   };
   sets: number;
   reps_min?: number;
@@ -75,6 +79,15 @@ const StudentWorkout = () => {
   const [workoutPlan, setWorkoutPlan] = useState<WorkoutPlan | null>(null);
   const [selectedDay, setSelectedDay] = useState<number>(new Date().getDay());
   const [isLoading, setIsLoading] = useState(true);
+  const [videoModal, setVideoModal] = useState<{
+    isOpen: boolean;
+    exerciseName: string;
+    youtubeUrl?: string;
+  }>({
+    isOpen: false,
+    exerciseName: "",
+    youtubeUrl: undefined,
+  });
   const { toast } = useToast();
 
   const daysOfWeek = [
@@ -163,6 +176,7 @@ const StudentWorkout = () => {
                   description,
                   instructions,
                   muscle_groups,
+                  youtube_video_url,
                   equipment,
                   exercise_categories(name, emoji)
                 )
@@ -202,19 +216,20 @@ const StudentWorkout = () => {
       );
 
       // Marcar os exercícios como concluídos
-      workoutData.workout_sessions.forEach((session: any) => {
-        session.workout_exercises.forEach((exercise: any) => {
+      workoutData.workout_sessions?.forEach((session: any) => {
+        session.workout_exercises?.forEach((exercise: any) => {
           exercise.isCompleted = completedExerciseIds.has(exercise.id);
           // Garantir que a estrutura do exercício está correta
           if (exercise.exercises) {
             // Criar estrutura de categoria a partir dos dados do Supabase
             exercise.exercise = {
-              name: exercise.exercises.name || 'Exercício não identificado',
-              description: exercise.exercises.description,
-              instructions: exercise.exercises.instructions,
-              muscle_groups: exercise.exercises.muscle_groups || [],
-              equipment: exercise.exercises.equipment || [],
-              category: exercise.exercises.exercise_categories || { name: 'Geral', emoji: '💪' }
+              name: exercise.exercises?.name || 'Exercício não identificado',
+              description: exercise.exercises?.description || null,
+              instructions: exercise.exercises?.instructions || null,
+              youtube_video_url: exercise.exercises?.youtube_video_url || null,
+              muscle_groups: Array.isArray(exercise.exercises?.muscle_groups) ? exercise.exercises.muscle_groups : [],
+              equipment: Array.isArray(exercise.exercises?.equipment) ? exercise.exercises.equipment : [],
+              category: exercise.exercises?.exercise_categories || { name: 'Geral', emoji: '💪' }
             };
           } else {
             // Fallback completo se não há dados do exercício
@@ -222,6 +237,7 @@ const StudentWorkout = () => {
               name: 'Exercício não identificado',
               description: null,
               instructions: null,
+              youtube_video_url: null,
               muscle_groups: [],
               equipment: [],
               category: { name: 'Geral', emoji: '💪' }
@@ -270,6 +286,22 @@ const StudentWorkout = () => {
     } catch (error) {
       console.error("Error marking exercise as completed:", error);
     }
+  };
+
+  const openVideoModal = (exerciseName: string, youtubeUrl?: string) => {
+    setVideoModal({
+      isOpen: true,
+      exerciseName,
+      youtubeUrl,
+    });
+  };
+
+  const closeVideoModal = () => {
+    setVideoModal({
+      isOpen: false,
+      exerciseName: "",
+      youtubeUrl: undefined,
+    });
   };
 
   const exportWorkout = () => {
@@ -381,12 +413,12 @@ const StudentWorkout = () => {
         y += lineHeight;
         
         doc.setFont("helvetica", "bold");
-        doc.text(`${index + 1}. ${exercise.exercise.name.toUpperCase()}`, margin, y);
+        doc.text(`${index + 1}. ${(exercise.exercise?.name || 'Exercício').toUpperCase()}`, margin, y);
         y += lineHeight;
         
         doc.setFont("helvetica", "normal");
-        if (exercise.exercise.category) {
-          doc.text(`${exercise.exercise.category.emoji} ${exercise.exercise.category.name}`, margin, y);
+        if (exercise.exercise?.category) {
+          doc.text(`${exercise.exercise.category?.emoji || '💪'} ${exercise.exercise.category?.name || 'Geral'}`, margin, y);
           y += lineHeight;
         }
         
@@ -431,7 +463,7 @@ const StudentWorkout = () => {
         }
         
         // Muscle groups
-        if (exercise.exercise.muscle_groups?.length > 0) {
+        if (Array.isArray(exercise.exercise?.muscle_groups) && exercise.exercise.muscle_groups.length > 0) {
           const muscles = exercise.exercise.muscle_groups.slice(0, 3).join(", ");
           const muscleLines = doc.splitTextToSize(`Musculos: ${muscles}`, 74);
           muscleLines.forEach((line: string) => {
@@ -441,12 +473,18 @@ const StudentWorkout = () => {
         }
         
         // Instructions
-        if (exercise.exercise.instructions) {
+        if (exercise.exercise?.instructions) {
           const instructionLines = doc.splitTextToSize(`Execucao: ${exercise.exercise.instructions}`, 74);
           instructionLines.slice(0, 2).forEach((line: string) => {
             doc.text(line, margin, y);
             y += lineHeight;
           });
+        }
+        
+        // YouTube video URL
+        if (exercise.exercise?.youtube_video_url) {
+          doc.text(`Video: ${exercise.exercise.youtube_video_url}`, margin, y);
+          y += lineHeight;
         }
         
         y += lineHeight;
@@ -520,42 +558,42 @@ const StudentWorkout = () => {
   <meta charset="UTF-8">
   <title>Comprovante Treino Térmico - ${student.name}</title>
   <style>
-    @page { 
-      size: 80mm auto; 
-      margin: 0; 
+    @page {  
+      size: 80mm auto;  
+      margin: 0;  
     }
     
-    body { 
-      width: 80mm; 
-      margin: 0; 
-      padding: 3mm; 
-      font-family: 'Courier New', monospace; 
-      font-size: 9px; 
-      line-height: 1.3; 
-      color: #000; 
+    body {  
+      width: 80mm;  
+      margin: 0;  
+      padding: 3mm;  
+      font-family: 'Courier New', monospace;  
+      font-size: 9px;  
+      line-height: 1.3;  
+      color: #000;  
       background: white;
     }
     
     .center { text-align: center; }
     .bold { font-weight: bold; }
-    .separator { 
-      border-top: 1px dashed #000; 
-      margin: 3mm 0; 
+    .separator {  
+      border-top: 1px dashed #000;  
+      margin: 3mm 0;  
       width: 100%;
     }
     .small { font-size: 7px; }
-    .exercise { 
-      margin: 2mm 0; 
+    .exercise {  
+      margin: 2mm 0;  
       padding: 1mm 0;
       border-bottom: 1px dotted #ccc;
     }
-    .exercise-header { 
-      font-weight: bold; 
-      font-size: 10px; 
+    .exercise-header {  
+      font-weight: bold;  
+      font-size: 10px;  
       margin-bottom: 1mm;
     }
-    .exercise-details { 
-      margin: 1mm 0; 
+    .exercise-details {  
+      margin: 1mm 0;  
       padding-left: 2mm;
     }
     .status-ok { font-weight: bold; }
@@ -613,9 +651,9 @@ const StudentWorkout = () => {
       
       <div class="exercise-details">
         <div>• Séries: ${exercise.sets}</div>
-        ${exercise.reps_min && exercise.reps_max 
+        ${exercise.reps_min && exercise.reps_max  
           ? `<div>• Repetições: ${exercise.reps_min}-${exercise.reps_max}</div>`
-          : exercise.reps_min 
+          : exercise.reps_min  
           ? `<div>• Repetições: ${exercise.reps_min}</div>`
           : ""
         }
@@ -628,13 +666,18 @@ const StudentWorkout = () => {
         
         ${exercise.notes ? `<div class="small">Obs: ${exercise.notes}</div>` : ""}
         
-        ${exercise.exercise.muscle_groups?.length > 0 
+        ${Array.isArray(exercise.exercise.muscle_groups) && exercise.exercise.muscle_groups.length > 0  
           ? `<div class="small">Músculos: ${exercise.exercise.muscle_groups.slice(0, 3).join(", ")}</div>`
           : ""
         }
         
-        ${exercise.exercise.instructions 
+        ${exercise.exercise.instructions  
           ? `<div class="small">Execução: ${exercise.exercise.instructions.substring(0, 80)}...</div>`
+          : ""
+        }
+        
+        ${exercise.exercise.youtube_video_url  
+          ? `<div class="small">Vídeo: ${exercise.exercise.youtube_video_url}</div>`
           : ""
         }
       </div>
@@ -770,263 +813,284 @@ const StudentWorkout = () => {
                 className="flex-shrink-0"
               >
                 <X className="h-4 w-4" />
-                </Button>
-                <div className="p-2 bg-primary/10 rounded-full flex-shrink-0">
-                  <Dumbbell className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
-                </div>
-                <div>
-                  <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-primary">
-                    FitTrainer-Pro
-                  </h1>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <User className="h-4 w-4" />
-                    <span className="truncate">{student.name}</span>
-                    <Calendar className="h-4 w-4 ml-2" />
-                    <span className="hidden sm:inline">
-                      {new Date().toLocaleDateString("pt-BR")}
-                    </span>
-                  </div>
-                </div>
+              </Button>
+              <div className="p-2 bg-primary/10 rounded-full flex-shrink-0">
+                <Dumbbell className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
               </div>
-              <div className="grid grid-cols-3 gap-2 w-full sm:w-auto">
-                <Button
-                  onClick={() => (window.location.href = `/student/${studentNumber}/diet`)}
-                  variant="secondary"
-                  size="sm"
-                  className="text-xs sm:text-sm h-9 sm:h-10"
-                >
-                  <Apple className="h-4 w-4 mr-1 sm:mr-2" />
-                  <span className="hidden sm:inline">Dieta</span>
-                  <span className="sm:hidden">Diet</span>
-                </Button>
-                <Button
-                  onClick={exportWorkout}
-                  variant="outline"
-                  size="sm"
-                  className="text-xs sm:text-sm h-9 sm:h-10"
-                >
-                  <Download className="h-4 w-4 mr-1 sm:mr-2" />
-                  <span className="hidden sm:inline">Export PDF</span>
-                  <span className="sm:hidden">Exp</span>
-                </Button>
-                <Button
-                  onClick={printThermalWorkout}
-                  variant="default"
-                  size="sm"
-                  className="text-xs sm:text-sm h-9 sm:h-10"
-                >
-                  <Printer className="h-4 w-4 mr-1 sm:mr-2" />
-                  <span className="hidden sm:inline">Imprimir</span>
-                  <span className="sm:hidden">Prt</span>
-                </Button>
+              <div>
+                <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-primary">
+                  FitTrainer-Pro
+                </h1>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <User className="h-4 w-4" />
+                  <span className="truncate">{student.name}</span>
+                  <Calendar className="h-4 w-4 ml-2" />
+                  <span className="hidden sm:inline">
+                    {new Date().toLocaleDateString("pt-BR")}
+                  </span>
+                </div>
               </div>
             </div>
+            <div className="grid grid-cols-3 gap-2 w-full sm:w-auto">
+              <Button
+                onClick={() => (window.location.href = `/student/${studentNumber}/diet`)}
+                variant="secondary"
+                size="sm"
+                className="text-xs sm:text-sm h-9 sm:h-10"
+              >
+                <Apple className="h-4 w-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">Dieta</span>
+                <span className="sm:hidden">Diet</span>
+              </Button>
+              <Button
+                onClick={exportWorkout}
+                variant="outline"
+                size="sm"
+                className="text-xs sm:text-sm h-9 sm:h-10"
+              >
+                <Download className="h-4 w-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">Export PDF</span>
+                <span className="sm:hidden">Exp</span>
+              </Button>
+              <Button
+                onClick={printThermalWorkout}
+                variant="default"
+                size="sm"
+                className="text-xs sm:text-sm h-9 sm:h-10"
+              >
+                <Printer className="h-4 w-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">Imprimir</span>
+                <span className="sm:hidden">Prt</span>
+              </Button>
+            </div>
           </div>
-        </header>
+        </div>
+      </header>
 
-        <div className="container mx-auto px-3 lg:px-4 py-4 lg:py-6">
-          <Card className="mb-6">
+      <div className="container mx-auto px-3 lg:px-4 py-4 lg:py-6">
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Target className="h-5 w-5 text-primary" />
+              {workoutPlan.name}
+            </CardTitle>
+            {workoutPlan.description && (
+              <p className="text-muted-foreground">{workoutPlan.description}</p>
+            )}
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              Personal Trainer:{" "}
+              <strong>{workoutPlan.personal_trainer.name}</strong>
+              {workoutPlan.personal_trainer.cref && (
+                <span> - CREF: {workoutPlan.personal_trainer.cref}</span>
+              )}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="text-lg sm:text-xl">
+              Selecionar Dia da Semana
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
+              {daysOfWeek.map((day, index) => {
+                const hasWorkout = workoutPlan.workout_sessions.some(
+                  (s) => s.day_of_week === index
+                );
+                return (
+                  <Button
+                    key={index}
+                    variant={selectedDay === index ? "default" : "outline"}
+                    onClick={() => setSelectedDay(index)}
+                    disabled={!hasWorkout}
+                    className="h-10 sm:h-12 text-xs sm:text-sm font-medium"
+                  >
+                    <span className="sm:hidden">{day.slice(0, 3)}</span>
+                    <span className="hidden sm:inline lg:hidden">
+                      {day.slice(0, 5)}
+                    </span>
+                    <span className="hidden lg:inline">{day}</span>
+                  </Button>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+
+        {currentSession ? (
+          <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Target className="h-5 w-5 text-primary" />
-                {workoutPlan.name}
+                <Dumbbell className="h-5 w-5 text-secondary" />
+                {currentSession.name}
               </CardTitle>
-              {workoutPlan.description && (
-                <p className="text-muted-foreground">{workoutPlan.description}</p>
+              {currentSession.description && (
+                <p className="text-muted-foreground">
+                  {currentSession.description}
+                </p>
               )}
             </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                Personal Trainer:{" "}
-                <strong>{workoutPlan.personal_trainer.name}</strong>
-                {workoutPlan.personal_trainer.cref && (
-                  <span> - CREF: {workoutPlan.personal_trainer.cref}</span>
-                )}
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle className="text-lg sm:text-xl">
-                Selecionar Dia da Semana
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
-                {daysOfWeek.map((day, index) => {
-                  const hasWorkout = workoutPlan.workout_sessions.some(
-                    (s) => s.day_of_week === index
-                  );
-                  return (
-                    <Button
-                      key={index}
-                      variant={selectedDay === index ? "default" : "outline"}
-                      onClick={() => setSelectedDay(index)}
-                      disabled={!hasWorkout}
-                      className="h-10 sm:h-12 text-xs sm:text-sm font-medium"
-                    >
-                      <span className="sm:hidden">{day.slice(0, 3)}</span>
-                      <span className="hidden sm:inline lg:hidden">
-                        {day.slice(0, 5)}
-                      </span>
-                      <span className="hidden lg:inline">{day}</span>
-                    </Button>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
-
-          {currentSession ? (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Dumbbell className="h-5 w-5 text-secondary" />
-                  {currentSession.name}
-                </CardTitle>
-                {currentSession.description && (
-                  <p className="text-muted-foreground">
-                    {currentSession.description}
-                  </p>
-                )}
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {currentSession.workout_exercises.map((exercise, index) => (
-                  <div key={exercise.id} className="space-y-3">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="space-y-2 flex-grow">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-semibold">{index + 1}.</span>
-                          <h3 className="font-semibold">
-                            {exercise.exercise?.name || 'Exercício não identificado'}
-                          </h3>
-                          <Badge variant="secondary">
-                            {exercise.exercise?.category?.emoji || '💪'}{" "}
-                            {exercise.exercise?.category?.name || 'Geral'}
+            <CardContent className="space-y-4">
+              {currentSession.workout_exercises.map((exercise, index) => (
+                <div key={exercise.id} className="space-y-3">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="space-y-2 flex-grow">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-semibold">{index + 1}.</span>
+                        <h3 className="font-semibold">
+                          {exercise.exercise?.name || 'Exercício não identificado'}
+                        </h3>
+                        <Badge variant="secondary">
+                          {exercise.exercise?.category?.emoji || '💪'}{" "}
+                          {exercise.exercise?.category?.name || 'Geral'}
+                        </Badge>
+                        {exercise.isCompleted && (
+                          <Badge className="bg-green-500 text-white hover:bg-green-600">
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                            Realizado
                           </Badge>
-                          {exercise.isCompleted && (
-                            <Badge className="bg-green-500 text-white hover:bg-green-600">
-                              <CheckCircle className="h-3 w-3 mr-1" />
-                              Realizado
-                            </Badge>
-                          )}
-                        </div>
+                        )}
+                      </div>
 
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
+                        <div>
+                          <span className="text-muted-foreground">Séries:</span>
+                          <span className="ml-2 font-medium">
+                            {exercise.sets}
+                          </span>
+                        </div>
+                        {(exercise.reps_min || exercise.reps_max) && (
                           <div>
-                            <span className="text-muted-foreground">Séries:</span>
+                            <span className="text-muted-foreground">Reps:</span>
                             <span className="ml-2 font-medium">
-                              {exercise.sets}
-                            </span>
-                          </div>
-                          {(exercise.reps_min || exercise.reps_max) && (
-                            <div>
-                              <span className="text-muted-foreground">Reps:</span>
-                              <span className="ml-2 font-medium">
-                                {exercise.reps_min && exercise.reps_max
-                                  ? `${exercise.reps_min}-${exercise.reps_max}`
-                                  : exercise.reps_min || exercise.reps_max}
-                              </span>
-                            </div>
-                          )}
-                          {exercise.weight_kg && (
-                            <div>
-                              <span className="text-muted-foreground">Peso:</span>
-                              <span className="ml-2 font-medium">
-                                {exercise.weight_kg}kg
-                              </span>
-                            </div>
-                          )}
-                          {exercise.rest_seconds && (
-                            <div className="flex items-center">
-                              <Clock className="h-3 w-3 text-muted-foreground mr-1" />
-                              <span className="text-muted-foreground">
-                                Descanso:
-                              </span>
-                              <span className="ml-2 font-medium">
-                                {exercise.rest_seconds}s
-                              </span>
-                            </div>
-                          )}
-                        </div>
-
-                        {exercise.exercise.muscle_groups?.length > 0 && (
-                          <div className="text-sm">
-                            <span className="text-muted-foreground">
-                              Músculos:
-                            </span>
-                            <span className="ml-2">
-                              {exercise.exercise?.muscle_groups?.join(", ") || 'Não especificado'}
+                              {exercise.reps_min && exercise.reps_max
+                                ? `${exercise.reps_min}-${exercise.reps_max}`
+                                : exercise.reps_min || exercise.reps_max}
                             </span>
                           </div>
                         )}
-
-                        {exercise.notes && (
-                          <div className="text-sm pt-1">
-                            <span className="text-muted-foreground">
-                              Observações:
+                        {exercise.weight_kg && (
+                          <div>
+                            <span className="text-muted-foreground">Peso:</span>
+                            <span className="ml-2 font-medium">
+                              {exercise.weight_kg}kg
                             </span>
-                            <p className="text-sm ml-2">{exercise.notes}</p>
                           </div>
                         )}
-
-                        {exercise.exercise.instructions && (
-                          <div className="text-sm pt-2 border-t">
+                        {exercise.rest_seconds && (
+                          <div className="flex items-center">
+                            <Clock className="h-3 w-3 text-muted-foreground mr-1" />
                             <span className="text-muted-foreground">
-                              Como executar:
+                              Descanso:
                             </span>
-                            <p className="text-sm ml-2 italic">
-                              {exercise.exercise?.instructions || 'Instruções não disponíveis'}
-                            </p>
+                            <span className="ml-2 font-medium">
+                              {exercise.rest_seconds}s
+                            </span>
                           </div>
                         )}
                       </div>
 
-                      {!exercise.isCompleted && (
-                        <Button
-                          onClick={() => markExerciseAsCompleted(exercise.id)}
-                          size="sm"
-                          className="bg-green-500 hover:bg-green-600 text-white h-9 text-xs sm:text-sm whitespace-nowrap"
-                        >
-                          <CheckCircle className="h-4 w-4 mr-2" />
-                          <span className="hidden sm:inline">
-                            Marcar como Feito
+                      {Array.isArray(exercise.exercise?.muscle_groups) && exercise.exercise.muscle_groups.length > 0 && (
+                        <div className="text-sm">
+                          <span className="text-muted-foreground">
+                            Músculos:
                           </span>
-                          <span className="sm:hidden">Feito</span>
-                        </Button>
+                          <span className="ml-2">
+                            {exercise.exercise.muscle_groups.join(", ")}
+                          </span>
+                        </div>
+                      )}
+
+                      {exercise.notes && (
+                        <div className="text-sm pt-1">
+                          <span className="text-muted-foreground">
+                            Observações:
+                          </span>
+                          <p className="text-sm ml-2">{exercise.notes}</p>
+                        </div>
+                      )}
+
+                      {exercise.exercise?.instructions && (
+                        <div className="text-sm pt-2 border-t">
+                          <span className="text-muted-foreground">
+                            Como executar:
+                          </span>
+                          <p className="text-sm ml-2 italic">
+                            {exercise.exercise.instructions}
+                          </p>
+                        </div>
+                      )}
+
+                      {exercise.exercise?.youtube_video_url && (
+                        <div className="pt-2 border-t">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openVideoModal(exercise.exercise?.name || 'Exercício', exercise.exercise?.youtube_video_url)}
+                            className="w-full"
+                          >
+                            <Play className="h-4 w-4 mr-2" />
+                            Ver Vídeo Demonstrativo
+                          </Button>
+                        </div>
                       )}
                     </div>
 
-                    {index < currentSession.workout_exercises.length - 1 && (
-                      <Separator />
+                    {!exercise.isCompleted && (
+                      <Button
+                        onClick={() => markExerciseAsCompleted(exercise.id)}
+                        size="sm"
+                        className="bg-green-500 hover:bg-green-600 text-white h-9 text-xs sm:text-sm whitespace-nowrap"
+                      >
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                        <span className="hidden sm:inline">
+                          Marcar como Feito
+                        </span>
+                        <span className="sm:hidden">Feito</span>
+                      </Button>
                     )}
                   </div>
-                ))}
-              </CardContent>
-            </Card>
-          ) : (
-            <Card className="bg-gradient-to-br from-muted/30 to-muted/10 border-dashed">
-              <CardContent className="text-center py-12 space-y-4">
-                <div className="w-16 h-16 mx-auto bg-muted/50 rounded-full flex items-center justify-center">
-                  <Dumbbell className="h-8 w-8 text-muted-foreground" />
-                </div>
-                <div className="space-y-2">
-                  <h3 className="text-lg font-semibold">Nenhum treino hoje</h3>
-                  <p className="text-muted-foreground">
-                    Não há treino programado para {daysOfWeek[selectedDay]}.
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    Selecione outro dia da semana ou entre em contato com seu
-                    personal trainer.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-      </div>
-    );
-  };
 
-  export default StudentWorkout;
+                  {index < currentSession.workout_exercises.length - 1 && (
+                    <Separator />
+                  )}
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="bg-gradient-to-br from-muted/30 to-muted/10 border-dashed">
+            <CardContent className="text-center py-12 space-y-4">
+              <div className="w-16 h-16 mx-auto bg-muted/50 rounded-full flex items-center justify-center">
+                <Dumbbell className="h-8 w-8 text-muted-foreground" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-lg font-semibold">Nenhum treino hoje</h3>
+                <p className="text-muted-foreground">
+                  Não há treino programado para {daysOfWeek[selectedDay]}.
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Selecione outro dia da semana ou entre em contato com seu
+                  personal trainer.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+      {/* Video Modal */}
+      <VideoModal
+        isOpen={videoModal.isOpen}
+        onClose={closeVideoModal}
+        exerciseName={videoModal.exerciseName}
+        youtubeUrl={videoModal.youtubeUrl}
+      />
+    </div>
+  );
+};
+
+export default StudentWorkout;

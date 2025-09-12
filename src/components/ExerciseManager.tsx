@@ -55,6 +55,7 @@ const ExerciseManager = ({ trainerId }: { trainerId: string }) => {
     description: "",
     instructions: "",
     category_id: "",
+    youtube_video_url: "",
     muscle_groups: [] as string[],
     equipment: [] as string[]
   });
@@ -164,6 +165,7 @@ const ExerciseManager = ({ trainerId }: { trainerId: string }) => {
       description: exercise.description || "",
       instructions: exercise.instructions || "",
       category_id: exercise.category_id,
+      youtube_video_url: exercise.youtube_video_url || "",
       muscle_groups: exercise.muscle_groups || [],
       equipment: exercise.equipment || []
     });
@@ -202,6 +204,7 @@ const ExerciseManager = ({ trainerId }: { trainerId: string }) => {
       description: "",
       instructions: "",
       category_id: "",
+      youtube_video_url: "",
       muscle_groups: [],
       equipment: []
     });
@@ -315,6 +318,20 @@ const ExerciseManager = ({ trainerId }: { trainerId: string }) => {
                   placeholder="Como executar o exercício corretamente..."
                   rows={3}
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="youtube_video_url">Vídeo Demonstrativo (YouTube)</Label>
+                <Input
+                  id="youtube_video_url"
+                  type="url"
+                  value={formData.youtube_video_url}
+                  onChange={(e) => setFormData({ ...formData, youtube_video_url: e.target.value })}
+                  placeholder="https://www.youtube.com/watch?v=..."
+                />
+                <p className="text-xs text-muted-foreground">
+                  Cole o link do YouTube do vídeo que demonstra como executar o exercício
+                </p>
               </div>
 
               <div className="space-y-2">

@@ -1097,6 +1097,16 @@ export default function StudentDiet() {
             )}
           </TabsContent>
         </Tabs>
+        
+        ${exercise.exercise.youtube_video_url 
+          ? `<div class="small">Vídeo: ${exercise.exercise.youtube_video_url}</div>`
+          : ""
+        }
+        
+        ${exercise.exercise.youtube_video_url 
+          ? `<div class="small">Vídeo: ${exercise.exercise.youtube_video_url}</div>`
+          : ""
+        }
       </div>
     </div>
   );

@@ -69,6 +69,7 @@ interface Exercise {
   name: string;
   description?: string;
   instructions?: string;
+  youtube_video_url?: string;
 }
 
 const WorkoutManager = ({ trainerId }: { trainerId: string }) => {

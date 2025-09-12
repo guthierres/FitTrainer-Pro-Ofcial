@@ -18,11 +18,13 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import VideoModal from "./VideoModal";
 
 interface Exercise {
   id: string;
   name: string;
   category_id: string;
+  youtube_video_url?: string;
 }
 
 interface ExerciseCategory {
@@ -100,6 +102,15 @@ const WorkoutPlanEditor = ({
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [selectedDaysToAdd, setSelectedDaysToAdd] = useState<number[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [videoModal, setVideoModal] = useState<{
+    isOpen: boolean;
+    exerciseName: string;
+    youtubeUrl?: string;
+  }>({
+    isOpen: false,
+    exerciseName: "",
+    youtubeUrl: undefined,
+  });
   const { toast } = useToast();
 
   useEffect(() => {
@@ -112,7 +123,7 @@ const WorkoutPlanEditor = ({
   const loadData = async () => {
     try {
       const [exercisesResponse, categoriesResponse] = await Promise.all([
-        supabase.from("exercises").select("id, name, category_id").order("name"),
+        supabase.from("exercises").select("id, name, category_id, youtube_video_url").order("name"),
         supabase.from("exercise_categories").select("id, name, emoji").order("name")
       ]);
 
@@ -458,6 +469,22 @@ const WorkoutPlanEditor = ({
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const openVideoModal = (exerciseName: string, youtubeUrl?: string) => {
+    setVideoModal({
+      isOpen: true,
+      exerciseName,
+      youtubeUrl,
+    });
+  };
+
+  const closeVideoModal = () => {
+    setVideoModal({
+      isOpen: false,
+      exerciseName: "",
+      youtubeUrl: undefined,
+    });
   };
 
   const categoryExercises = exercises.filter(ex => ex.category_id === selectedCategory);
@@ -925,6 +952,14 @@ const WorkoutPlanEditor = ({
           </div>
         </CardContent>
       </Card>
+
+      {/* Video Modal */}
+      <VideoModal
+        isOpen={videoModal.isOpen}
+        onClose={closeVideoModal}
+        exerciseName={videoModal.exerciseName}
+        youtubeUrl={videoModal.youtubeUrl}
+      />
     </div>
   );
 };

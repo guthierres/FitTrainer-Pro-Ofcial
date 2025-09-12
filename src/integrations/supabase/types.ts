@@ -154,6 +154,7 @@ export type Database = {
           muscle_groups: string[] | null
           name: string
           personal_trainer_id: string | null
+          youtube_video_url: string | null
         }
         Insert: {
           category_id: string
@@ -165,6 +166,7 @@ export type Database = {
           muscle_groups?: string[] | null
           name: string
           personal_trainer_id?: string | null
+          youtube_video_url?: string | null
         }
         Update: {
           category_id?: string
@@ -176,6 +178,7 @@ export type Database = {
           muscle_groups?: string[] | null
           name?: string
           personal_trainer_id?: string | null
+          youtube_video_url?: string | null
         }
         Relationships: [
           {
