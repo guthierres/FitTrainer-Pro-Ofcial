@@ -286,179 +286,207 @@ const StudentWorkout = () => {
       return;
     }
 
-    // Generate PDF using jsPDF
+    // Generate thermal PDF using jsPDF
     import('jspdf').then(({ jsPDF }) => {
-      const doc = new jsPDF();
+      // Thermal printer format (80mm width)
+      const doc = new jsPDF({
+        unit: 'mm',
+        format: [80, 200] // 80mm width, auto height
+      });
 
-      // Configure colors and fonts
-      const primaryColor = [14, 165, 233]; // Blue
-      const secondaryColor = [100, 116, 139]; // Gray
-      const accentColor = [34, 197, 94]; // Green
-
-      let y = 20;
-      const lineHeight = 8;
-      const pageWidth = doc.internal.pageSize.getWidth();
-      const pageHeight = doc.internal.pageSize.getHeight();
-      const margin = 20;
-      const contentWidth = pageWidth - (margin * 2);
-
-      // Header background
-      doc.setFillColor(...primaryColor);
-      doc.rect(0, 0, pageWidth, 50, 'F');
-
-      // Logo area
-      doc.setFillColor(255, 255, 255);
-      doc.circle(30, 25, 12, 'F');
-      doc.setTextColor(...primaryColor);
-      doc.setFontSize(16);
-      doc.setFont("helvetica", "bold");
-      doc.text("💪", 30, 30, { align: "center" });
-
-      // Title
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(24);
-      doc.setFont("helvetica", "bold");
-      doc.text("FITTRAINER-PRO", 50, 25);
-      doc.setFontSize(12);
+      // Configure font
       doc.setFont("helvetica", "normal");
-      doc.text("Plano de Treino Personalizado", 50, 35);
+      doc.setFontSize(8);
+      
+      let y = 5;
+      const lineHeight = 4;
+      const centerX = 40;
+      const margin = 3;
 
-      y = 65;
-
-      // Reset text color
-      doc.setTextColor(0, 0, 0);
-
-      // Student info card
-      doc.setFillColor(248, 250, 252);
-      doc.roundedRect(margin, y, contentWidth, 35, 5, 5, 'F');
-      doc.setDrawColor(...secondaryColor);
-      doc.roundedRect(margin, y, contentWidth, 35, 5, 5, 'S');
-
-      y += 10;
-      doc.setFontSize(14);
+      // Header
+      doc.setFontSize(12);
       doc.setFont("helvetica", "bold");
-      doc.text("INFORMAÇÕES DO ALUNO", margin + 5, y);
-
-      y += 8;
+      doc.text("FITTRAINER-PRO", centerX, y, { align: "center" });
+      y += lineHeight;
+      
       doc.setFontSize(10);
-      doc.setFont("helvetica", "normal");
-      doc.text(`Nome: ${student.name}`, margin + 5, y);
-      doc.text(`Data: ${new Date().toLocaleDateString("pt-BR")}`, pageWidth - margin - 5, y, { align: "right" });
+      doc.text("PLANO DE TREINO", centerX, y, { align: "center" });
+      y += lineHeight;
+      
+      doc.setFontSize(8);
+      doc.text("================================", centerX, y, { align: "center" });
+      y += lineHeight * 1.5;
 
-      y += 6;
-      doc.text(`Número: ${student.student_number}`, margin + 5, y);
-      doc.text(`Treino: ${currentSession.name}`, pageWidth - margin - 5, y, { align: "right" });
-
-      y += 6;
-      doc.text(`Personal: ${workoutPlan.personal_trainer.name}`, margin + 5, y);
-      if (workoutPlan.personal_trainer.cref) {
-        doc.text(`CREF: ${workoutPlan.personal_trainer.cref}`, pageWidth - margin - 5, y, { align: "right" });
-      }
-
-      y += 20;
-
-      // Workout title
-      doc.setFillColor(...accentColor);
-      doc.rect(margin, y, contentWidth, 12, 'F');
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(12);
+      // Student info
       doc.setFont("helvetica", "bold");
-      doc.text(`${currentSession.name.toUpperCase()} - ${daysOfWeek[selectedDay].toUpperCase()}`, margin + 5, y + 8);
+      doc.text("DADOS DO ALUNO", margin, y);
+      y += lineHeight;
+      
+      doc.setFont("helvetica", "normal");
+      doc.text(`Nome: ${student.name}`, margin, y);
+      y += lineHeight;
+      doc.text(`Numero: ${student.student_number}`, margin, y);
+      y += lineHeight;
+      doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, margin, y);
+      y += lineHeight;
+      doc.text(`Hora: ${new Date().toLocaleTimeString('pt-BR')}`, margin, y);
+      y += lineHeight * 1.5;
 
-      y += 20;
-      doc.setTextColor(0, 0, 0);
+      // Trainer info
+      doc.setFont("helvetica", "bold");
+      doc.text("PERSONAL TRAINER", margin, y);
+      y += lineHeight;
+      
+      doc.setFont("helvetica", "normal");
+      doc.text(`Nome: ${workoutPlan.personal_trainer.name}`, margin, y);
+      y += lineHeight;
+      if (workoutPlan.personal_trainer.cref) {
+        doc.text(`CREF: ${workoutPlan.personal_trainer.cref}`, margin, y);
+        y += lineHeight;
+      }
+      y += lineHeight;
+
+      // Workout info
+      doc.text("--------------------------------", centerX, y, { align: "center" });
+      y += lineHeight;
+      
+      doc.setFont("helvetica", "bold");
+      doc.text("TREINO DO DIA", margin, y);
+      y += lineHeight;
+      
+      doc.setFont("helvetica", "normal");
+      doc.text(`Nome: ${currentSession.name}`, margin, y);
+      y += lineHeight;
+      doc.text(`Dia: ${daysOfWeek[selectedDay]}`, margin, y);
+      y += lineHeight;
+      doc.text(`Exercicios: ${currentSession.workout_exercises.length}`, margin, y);
+      y += lineHeight * 1.5;
+
+      doc.text("================================", centerX, y, { align: "center" });
+      y += lineHeight;
 
       // Exercises
+      doc.setFont("helvetica", "bold");
+      doc.text("EXERCICIOS DO TREINO", centerX, y, { align: "center" });
+      y += lineHeight * 1.5;
+      
       currentSession.workout_exercises.forEach((exercise, index) => {
         // Check if we need a new page
-        if (y > pageHeight - 60) {
+        if (y > 280) {
           doc.addPage();
-          y = 20;
+          y = 10;
         }
-
-        // Exercise card background
-        doc.setFillColor(252, 252, 252);
-        const cardHeight = 25;
-        doc.roundedRect(margin, y, contentWidth, cardHeight, 3, 3, 'F');
-        doc.setDrawColor(229, 231, 235);
-        doc.roundedRect(margin, y, contentWidth, cardHeight, 3, 3, 'S');
-
-        // Exercise number circle
-        doc.setFillColor(...primaryColor);
-        doc.circle(margin + 10, y + 8, 6, 'F');
-        doc.setTextColor(255, 255, 255);
-        doc.setFontSize(10);
+        
+        doc.text("--------------------------------", centerX, y, { align: "center" });
+        y += lineHeight;
+        
         doc.setFont("helvetica", "bold");
-        doc.text((index + 1).toString(), margin + 10, y + 10, { align: "center" });
-
-        // Exercise name
-        doc.setTextColor(0, 0, 0);
-        doc.setFontSize(11);
-        doc.setFont("helvetica", "bold");
-        doc.text(exercise.exercise.name, margin + 20, y + 8);
-
-        // Status badge
-        const status = exercise.isCompleted ? "CONCLUÍDO" : "PENDENTE";
-        const statusColor = exercise.isCompleted ? accentColor : [239, 68, 68];
-        doc.setFillColor(...statusColor);
-        doc.roundedRect(pageWidth - margin - 35, y + 2, 30, 8, 2, 2, 'F');
-        doc.setTextColor(255, 255, 255);
-        doc.setFontSize(7);
-        doc.setFont("helvetica", "bold");
-        doc.text(status, pageWidth - margin - 20, y + 7, { align: "center" });
-
-        // Exercise details
-        doc.setTextColor(...secondaryColor);
-        doc.setFontSize(9);
+        doc.text(`${index + 1}. ${exercise.exercise.name.toUpperCase()}`, margin, y);
+        y += lineHeight;
+        
         doc.setFont("helvetica", "normal");
-
-        let details = `${exercise.sets} séries`;
-        if (exercise.reps_min && exercise.reps_max) {
-          details += ` • ${exercise.reps_min}-${exercise.reps_max} repetições`;
-        } else if (exercise.reps_min) {
-          details += ` • ${exercise.reps_min} repetições`;
-        }
-        if (exercise.weight_kg) {
-          details += ` • ${exercise.weight_kg}kg`;
-        }
-        if (exercise.rest_seconds) {
-          details += ` • ${Math.round(exercise.rest_seconds/60)}min descanso`;
-        }
-
-        doc.text(details, margin + 20, y + 15);
-
-        // Category and muscles
         if (exercise.exercise.category) {
-          doc.text(`${exercise.exercise.category.emoji} ${exercise.exercise.category.name}`, margin + 20, y + 20);
+          doc.text(`${exercise.exercise.category.emoji} ${exercise.exercise.category.name}`, margin, y);
+          y += lineHeight;
         }
-
+        
+        doc.text("- - - - - - - - - - - - - - - - -", centerX, y, { align: "center" });
+        y += lineHeight;
+        
+        // Exercise details
+        doc.text(`• Series: ${exercise.sets}`, margin, y);
+        y += lineHeight;
+        
+        if (exercise.reps_min && exercise.reps_max) {
+          doc.text(`• Repeticoes: ${exercise.reps_min}-${exercise.reps_max}`, margin, y);
+        } else if (exercise.reps_min) {
+          doc.text(`• Repeticoes: ${exercise.reps_min}`, margin, y);
+        }
+        y += lineHeight;
+        
+        if (exercise.weight_kg) {
+          doc.text(`• Peso: ${exercise.weight_kg}kg`, margin, y);
+          y += lineHeight;
+        }
+        
+        if (exercise.rest_seconds) {
+          doc.text(`• Descanso: ${Math.round(exercise.rest_seconds/60)}min`, margin, y);
+          y += lineHeight;
+        }
+        
+        // Status
+        const status = exercise.isCompleted ? '[✓] REALIZADO' : '[ ] PENDENTE';
+        doc.setFont("helvetica", "bold");
+        doc.text(`Status: ${status}`, margin, y);
+        y += lineHeight;
+        doc.setFont("helvetica", "normal");
+        
+        // Notes
+        if (exercise.notes) {
+          const noteLines = doc.splitTextToSize(`Obs: ${exercise.notes}`, 74);
+          noteLines.forEach((line: string) => {
+            doc.text(line, margin, y);
+            y += lineHeight;
+          });
+        }
+        
+        // Muscle groups
         if (exercise.exercise.muscle_groups?.length > 0) {
           const muscles = exercise.exercise.muscle_groups.slice(0, 3).join(", ");
-          doc.text(`Músculos: ${muscles}`, pageWidth - margin - 5, y + 20, { align: "right" });
+          const muscleLines = doc.splitTextToSize(`Musculos: ${muscles}`, 74);
+          muscleLines.forEach((line: string) => {
+            doc.text(line, margin, y);
+            y += lineHeight;
+          });
         }
-
-        y += cardHeight + 5;
+        
+        // Instructions
+        if (exercise.exercise.instructions) {
+          const instructionLines = doc.splitTextToSize(`Execucao: ${exercise.exercise.instructions}`, 74);
+          instructionLines.slice(0, 2).forEach((line: string) => {
+            doc.text(line, margin, y);
+            y += lineHeight;
+          });
+        }
+        
+        y += lineHeight;
       });
 
       // Footer
-      y = pageHeight - 30;
-      doc.setFillColor(...primaryColor);
-      doc.rect(0, y, pageWidth, 30, 'F');
-
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(8);
+      y += lineHeight;
+      doc.text("================================", centerX, y, { align: "center" });
+      y += lineHeight;
+      
+      doc.setFont("helvetica", "bold");
+      doc.text("INFORMACOES DO SISTEMA", centerX, y, { align: "center" });
+      y += lineHeight;
+      
       doc.setFont("helvetica", "normal");
-      doc.text(`Sistema: FitTrainer-Pro | ${window.location.origin}/student/${studentNumber}`, margin, y + 10);
-      doc.text(`Gerado em: ${new Date().toLocaleString("pt-BR")}`, margin, y + 18);
-      doc.text(`Aluno: ${student.student_number} | Personal: ${workoutPlan.personal_trainer.name}`, margin, y + 26);
+      doc.setFontSize(7);
+      doc.text(`Sistema: FitTrainer-Pro v1.0`, margin, y);
+      y += lineHeight;
+      doc.text(`Link: ${window.location.origin}/student/${studentNumber}`, margin, y);
+      y += lineHeight;
+      doc.text(`Gerado: ${new Date().toLocaleString('pt-BR')}`, margin, y);
+      y += lineHeight * 2;
+      
+      doc.text("================================", centerX, y, { align: "center" });
+      y += lineHeight;
+      doc.text("Assinatura do Personal Trainer", centerX, y, { align: "center" });
+      y += lineHeight * 2;
+      doc.text("_______________________________", centerX, y, { align: "center" });
+      y += lineHeight;
+      doc.text(workoutPlan.personal_trainer.name, centerX, y, { align: "center" });
+      y += lineHeight;
+      doc.text(workoutPlan.personal_trainer.cref || 'Personal Trainer', centerX, y, { align: "center" });
 
       // Save PDF
-      const fileName = `FitTrainer-Pro_Treino_${student.name.replace(/\s+/g, '_')}_${new Date().toLocaleDateString("pt-BR").replace(/\//g, "-")}.pdf`;
+      const fileName = `FitTrainer-Pro_Treino_Termico_${student.name.replace(/\s+/g, '_')}_${new Date().toLocaleDateString("pt-BR").replace(/\//g, "-")}.pdf`;
       doc.save(fileName);
 
       toast({
         title: "📄 Treino exportado!",
-        description: "Arquivo PDF profissional gerado com sucesso.",
+        description: "Arquivo PDF térmico gerado com sucesso.",
       });
     }).catch(() => {
       toast({
@@ -778,7 +806,7 @@ const StudentWorkout = () => {
                   className="text-xs sm:text-sm h-9 sm:h-10"
                 >
                   <Download className="h-4 w-4 mr-1 sm:mr-2" />
-                  <span className="hidden sm:inline">Export Térmico</span>
+                  <span className="hidden sm:inline">Export PDF</span>
                   <span className="sm:hidden">Exp</span>
                 </Button>
                 <Button
@@ -788,7 +816,7 @@ const StudentWorkout = () => {
                   className="text-xs sm:text-sm h-9 sm:h-10"
                 >
                   <Printer className="h-4 w-4 mr-1 sm:mr-2" />
-                  <span className="hidden sm:inline">Print Térmico</span>
+                  <span className="hidden sm:inline">Imprimir</span>
                   <span className="sm:hidden">Prt</span>
                 </Button>
               </div>
